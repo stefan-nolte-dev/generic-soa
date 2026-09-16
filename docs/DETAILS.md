@@ -54,10 +54,10 @@ anyway. The trade is deliberate, and so is its scope.
 
 ## What this costs, measured
 
-The comparison is against a typed mORMot application in production here —
+The comparison is against a typed mORMot application in production —
 *the typed service* below — on a query that exists in both worlds: return a
-lookup table — a select of two columns, no parameter, `GetAlleKategorien`
-there and `GetAllCustomers` here.
+lookup table — a select of two columns, no parameter. A category lookup
+there, `GetAllCustomers` here.
 
 Counted are productive lines only: no blank lines, no comments, no tests.
 

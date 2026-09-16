@@ -55,10 +55,10 @@ SQL enden. Der Tausch ist bewusst, und sein Geltungsbereich auch.
 
 ## Was das kostet, gemessen
 
-Verglichen wird mit einer hier produktiven, typisierten mORMot-Anwendung —
+Verglichen wird mit einer produktiven, typisierten mORMot-Anwendung —
 nachfolgend *der typisierte Dienst* — an einer Abfrage, die es in beiden Welten
 gibt: eine Nachschlagetabelle liefern — ein Select über zwei Spalten, ohne
-Parameter, dort `GetAlleKategorien`, hier `GetAllCustomers`.
+Parameter. Dort eine Kategorie-Nachschlagetabelle, hier `GetAllCustomers`.
 
 Gezählt sind nur produktive Zeilen: keine Leerzeilen, keine Kommentare, keine
 Tests.
