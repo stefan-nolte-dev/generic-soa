@@ -44,6 +44,18 @@ lazbuild src/projclientlaz/soa_sql_templates_client.lpi
 
 The `lazbuild` help prints that option with an equals sign, but it is only accepted with a space in front of the file. In the IDE it is enough to open `mormot2.lpk` once and compile it; the three projects then pull the package in as a dependency. The binaries land in `bin/`.
 
+Registering is not the same as compiling. `mormot2` is a runtime-only package, so it installs nothing into the IDE and needs no rebuild of it — but it has to be compiled once for exactly the configuration you build with (FPC version, target CPU and OS, mode), or the projects abort with *Can't find unit mormot.core.json*:
+
+```bash
+lazbuild -B <mORMot2>/packages/lazarus/mormot2.lpk
+```
+
+If you keep several Lazarus installations, name the one that knows the package, or `lazbuild` aborts with *Broken dependency: mormot2*:
+
+```bash
+<lazarus>/lazbuild --pcp=<config_lazarus> src/proj/soa_sql_templates_server.lpi
+```
+
 **The demo database.** `bin/demo.sqlite` is not under version control. The server creates it on first start — `CreateDemoDatabase` and `CreateBulkDemoTables` in `src/serv/app/ServSqlTemplates.pas`; starting it once is enough, and no further tool is needed for that. That holds for starting it from the IDE without parameters as well. On Linux, Lazarus shows a console program's output in `xterm`: if that package is missing, no window appears even though the server is running — then `sudo apt install xterm`, name another terminal program in the IDE's environment options, or simply start the server from a shell. To get exactly the written-out state instead, apply `bin/demo.sql`:
 
 ```bash

@@ -63,3 +63,6 @@ Thumbs.db
 # Common editor/IDE folders
 .vscode/
 .idea/
+
+# lokales Uebergabedokument, nicht fuer das oeffentliche Repo
+HANDOFF.md

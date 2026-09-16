@@ -44,6 +44,18 @@ lazbuild src/projclientlaz/soa_sql_templates_client.lpi
 
 Die Hilfe von `lazbuild` schreibt die Option mit Gleichheitszeichen, angenommen wird sie aber nur mit Leerzeichen davor. In der IDE genügt es, `mormot2.lpk` einmal zu öffnen und zu kompilieren; die drei Projekte ziehen das Package dann als Abhängigkeit nach. Die Binaries landen in `bin/`.
 
+Registrieren ist nicht dasselbe wie Übersetzen. `mormot2` ist ein reines Laufzeitpaket, installiert also nichts in die Entwurfszeit und verlangt keinen Neubau der IDE — übersetzt werden muss es aber einmal, in genau der Konfiguration, mit der gebaut wird (FPC-Version, Ziel-CPU und -OS, Modus), sonst brechen die Projekte mit *Can't find unit mormot.core.json* ab:
+
+```bash
+lazbuild -B <mORMot2>/packages/lazarus/mormot2.lpk
+```
+
+Wer mehrere Lazarus-Installationen hat, nennt die, die das Paket kennt — sonst bricht `lazbuild` mit *Broken dependency: mormot2* ab:
+
+```bash
+<lazarus>/lazbuild --pcp=<config_lazarus> src/proj/soa_sql_templates_server.lpi
+```
+
 **Die Demo-Datenbank.** `bin/demo.sqlite` liegt nicht in der Versionsverwaltung. Der Server legt sie beim ersten Start selbst an — `CreateDemoDatabase` und `CreateBulkDemoTables` in `src/serv/app/ServSqlTemplates.pas`; einmal starten genügt, ein weiteres Werkzeug braucht es dafür nicht. Das gilt auch für den Start aus der IDE ohne Parameter. Dabei zeigt Lazarus die Ausgabe eines Konsolenprogramms unter Linux in `xterm`: Fehlt das Paket, erscheint kein Fenster, obwohl der Server läuft — dann `sudo apt install xterm`, ein anderes Terminalprogramm in den Umgebungseinstellungen der IDE eintragen, oder den Server einfach aus einer Shell starten. Wer stattdessen genau den aufgeschriebenen Stand will, spielt `bin/demo.sql` ein:
 
 ```bash
