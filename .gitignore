@@ -1,0 +1,65 @@
+# FreePascal / Lazarus compiled binaries
+*.o
+*.ppu
+*.a
+*.so
+*.dll
+*.exe
+*.dylib
+
+# Lazarus backup files
+*.bak
+backup/
+
+# Build output
+# NOT "bin/": an excluded directory cannot have single files brought back in -
+# git never looks inside it. "bin/*" excludes the contents instead, so the two
+# files that ARE the templates can be re-included below.
+bin/*
+!bin/.gitkeep
+!bin/templates.sqlite
+!bin/templates.sql
+# one pair per database: the mssql profile has its own, so the two sets
+# never appear in the same diff. Its DDL belongs with them - without it the
+# profile has nothing to read
+!bin/templates_mssql.sqlite
+!bin/templates_mssql.sql
+!bin/templates_mssql_schema.sql
+# the demo database as a script - demo.sqlite itself stays out, the server
+# writes it on first start
+!bin/demo.sql
+# no folder in the pattern, so they are caught wherever they land: started
+# from the IDE the server's working directory is the project folder, not bin/
+demo.sqlite
+auth.sqlite
+# lets OpenSSL 3 speak TLS 1.0 to an older SQL Server - see SqlServerConn.pas
+!bin/openssl-tls1.cnf
+*.log
+
+libclient/
+libeditor/
+
+# Lazarus IDE state / user-specific files
+*.lps
+
+# Compiled units per config (lib folder)
+lib/
+
+# Object output directories
+*.compiled
+
+# FPC/Lazarus project state
+*.res.bak
+
+# Debug symbols
+*.dbg
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Common editor/IDE folders
+.vscode/
+.idea/

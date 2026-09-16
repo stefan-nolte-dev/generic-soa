@@ -1,0 +1,16 @@
+# Allows the legacy TLS 1.0 handshake older SQL Server versions require
+# (2008 R2, for one).
+# Picked up via OPENSSL_CONF, which ServAppTool.pas sets on macOS when this file
+# sits next to the executable and OPENSSL_CONF is not already defined.
+openssl_conf = openssl_init
+
+[openssl_init]
+ssl_conf = ssl_sect
+
+[ssl_sect]
+system_default = system_default_sect
+
+[system_default_sect]
+MinProtocol = TLSv1
+CipherString = DEFAULT@SECLEVEL=0
+Options = UnsafeLegacyRenegotiation

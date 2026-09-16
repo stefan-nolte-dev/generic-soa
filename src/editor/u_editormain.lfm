@@ -1,0 +1,853 @@
+object FormEditor: TFormEditor
+  Left = 200
+  Height = 828
+  Top = 100
+  Width = 1180
+  Caption = 'SQL Template Editor'
+  ClientHeight = 828
+  ClientWidth = 1180
+  Position = poScreenCenter
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object PanelTop: TPanel
+    Left = 0
+    Height = 104
+    Top = 0
+    Width = 1180
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 104
+    ClientWidth = 1180
+    TabOrder = 0
+    object LabelEngine: TLabel
+      Left = 12
+      Height = 16
+      Top = 14
+      Width = 22
+      Caption = 'DB:'
+      ParentColor = False
+    end
+    object ComboEngine: TComboBox
+      Left = 92
+      Height = 20
+      Top = 10
+      Width = 180
+      ItemHeight = 16
+      Style = csDropDownList
+      TabOrder = 0
+      OnChange = ComboEngineChange
+    end
+    object LabelTarget: TLabel
+      Left = 288
+      Height = 16
+      Top = 14
+      Width = 26
+      Caption = 'Ziel:'
+      ParentColor = False
+    end
+    object EditTarget: TEdit
+      Left = 330
+      Height = 21
+      Top = 10
+      Width = 290
+      TabOrder = 1
+    end
+    object ButtonBrowseTarget: TButton
+      Left = 624
+      Height = 25
+      Top = 10
+      Width = 30
+      Caption = '...'
+      TabOrder = 7
+      OnClick = ButtonBrowseTargetClick
+    end
+    object LabelUser: TLabel
+      Left = 664
+      Height = 16
+      Top = 14
+      Width = 32
+      Caption = 'User:'
+      ParentColor = False
+    end
+    object EditUser: TEdit
+      Left = 706
+      Height = 21
+      Top = 10
+      Width = 110
+      TabOrder = 2
+    end
+    object LabelPassword: TLabel
+      Left = 828
+      Height = 16
+      Top = 14
+      Width = 59
+      Caption = 'Passwort:'
+      ParentColor = False
+    end
+    object EditPassword: TEdit
+      Left = 894
+      Height = 21
+      Top = 10
+      Width = 110
+      EchoMode = emPassword
+      PasswordChar = '*'
+      TabOrder = 3
+    end
+    object ButtonConnect: TButton
+      Left = 1020
+      Height = 27
+      Top = 9
+      Width = 130
+      Caption = 'Verbinden'
+      TabOrder = 4
+      OnClick = ButtonConnectClick
+    end
+    object LabelProfile: TLabel
+      Left = 288
+      Height = 16
+      Top = 44
+      Width = 35
+      Caption = 'Profil:'
+      ParentColor = False
+    end
+    object ComboProfile: TComboBox
+      Left = 330
+      Height = 20
+      Top = 40
+      Width = 324
+      ItemHeight = 15
+      Style = csDropDownList
+      TabOrder = 9
+      OnChange = ComboProfileChange
+    end
+    object LabelTemplates: TLabel
+      Left = 12
+      Height = 16
+      Top = 74
+      Width = 66
+      Caption = 'Templates:'
+      ParentColor = False
+    end
+    object EditTemplates: TEdit
+      Left = 92
+      Height = 21
+      Top = 70
+      Width = 290
+      TabOrder = 5
+    end
+    object ButtonBrowseTemplates: TButton
+      Left = 386
+      Height = 25
+      Top = 70
+      Width = 30
+      Caption = '...'
+      TabOrder = 8
+      OnClick = ButtonBrowseTemplatesClick
+    end
+    object ButtonLoadList: TButton
+      Left = 424
+      Height = 27
+      Top = 69
+      Width = 130
+      Caption = 'Liste laden'
+      TabOrder = 6
+      OnClick = ButtonLoadListClick
+    end
+  end
+  object PanelKeys: TPanel
+    Left = 0
+    Height = 208
+    Top = 620
+    Width = 250
+    Align = alLeft
+    BevelOuter = bvNone
+    ClientHeight = 208
+    ClientWidth = 250
+    TabOrder = 1
+    object ListKeys: TListBox
+      Left = 0
+      Height = 200
+      Top = 0
+      Width = 250
+      Align = alClient
+      ItemHeight = 0
+      TabOrder = 0
+      OnSelectionChange = ListKeysSelectionChange
+    end
+    object PanelKeysBottom: TPanel
+      Left = 0
+      Height = 40
+      Top = 200
+      Width = 250
+      Align = alBottom
+      BevelOuter = bvNone
+      ClientHeight = 40
+      ClientWidth = 250
+      TabOrder = 1
+      object ButtonNew: TButton
+        Left = 6
+        Height = 27
+        Top = 6
+        Width = 110
+        Caption = 'Neu'
+        TabOrder = 0
+        OnClick = ButtonNewClick
+      end
+      object ButtonDelete: TButton
+        Left = 126
+        Height = 27
+        Top = 6
+        Width = 110
+        Caption = 'Löschen'
+        TabOrder = 1
+        OnClick = ButtonDeleteClick
+      end
+    end
+  end
+  object Splitter1: TSplitter
+    Left = 250
+    Height = 208
+    Top = 620
+    Width = 6
+  end
+  object PanelEdit: TScrollBox
+    Left = 0
+    Height = 280
+    Top = 104
+    Width = 1180
+    HorzScrollBar.Visible = False
+    VertScrollBar.Increment = 24
+    Align = alTop
+    BorderStyle = bsNone
+    TabOrder = 2
+    object LabelKey: TLabel
+      Left = 12
+      Height = 16
+      Top = 12
+      Width = 71
+      Caption = 'Action-Key:'
+      ParentColor = False
+    end
+    object EditKey: TEdit
+      Left = 100
+      Height = 21
+      Top = 8
+      Width = 320
+      TabOrder = 0
+    end
+    object LabelRights: TLabel
+      Left = 434
+      Height = 16
+      Top = 12
+      Width = 145
+      Caption = 'Rechte lesen/schreiben:'
+      ParentColor = False
+    end
+    object EditReadGroups: TEdit
+      Left = 600
+      Height = 21
+      Top = 8
+      Width = 70
+      TabOrder = 9
+      Text = '0'
+    end
+    object EditWriteGroups: TEdit
+      Left = 676
+      Height = 21
+      Top = 8
+      Width = 70
+      TabOrder = 10
+      Text = '0'
+    end
+    object LabelRightsHint: TLabel
+      Left = 756
+      Height = 16
+      Top = 12
+      Width = 218
+      Caption = 'Bitmaske je Gruppe, 0 = keine Regel'
+      ParentColor = False
+    end
+    object LabelSql: TLabel
+      Left = 12
+      Height = 16
+      Top = 44
+      Width = 29
+      Caption = 'SQL:'
+      ParentColor = False
+    end
+    object MemoSql: TMemo
+      Left = 100
+      Height = 116
+      Top = 40
+      Width = 1066
+      Anchors = [akTop, akLeft, akRight]
+      Font.Height = -12
+      Font.Name = 'Menlo'
+      ParentFont = False
+      ScrollBars = ssAutoBoth
+      TabOrder = 1
+      WordWrap = False
+    end
+    object LabelParamTypes: TLabel
+      Left = 12
+      Height = 16
+      Top = 168
+      Width = 41
+      Caption = 'Typen:'
+      ParentColor = False
+    end
+    object EditParamTypes: TEdit
+      Left = 100
+      Height = 21
+      Top = 164
+      Width = 320
+      TabOrder = 11
+    end
+    object LabelRecordType: TLabel
+      Left = 630
+      Height = 16
+      Top = 168
+      Width = 74
+      Caption = 'Record-Typ:'
+      ParentColor = False
+    end
+    object EditRecordType: TEdit
+      Left = 720
+      Height = 21
+      Top = 164
+      Width = 190
+      TabOrder = 13
+    end
+    object ButtonTypesFromBounds: TButton
+      Left = 428
+      Height = 27
+      Top = 163
+      Width = 190
+      Caption = 'aus Parametern übernehmen'
+      TabOrder = 12
+      OnClick = ButtonTypesFromBoundsClick
+    end
+    object LabelBounds: TLabel
+      Left = 12
+      Height = 16
+      Top = 200
+      Width = 66
+      Caption = 'Parameter:'
+      ParentColor = False
+    end
+    object ComboBoundKind: TComboBox
+      Left = 100
+      Height = 20
+      Top = 196
+      Width = 120
+      ItemHeight = 16
+      Style = csDropDownList
+      TabOrder = 2
+      OnChange = ComboBoundKindChange
+    end
+    object EditBoundValue: TEdit
+      Left = 228
+      Height = 21
+      Top = 196
+      Width = 240
+      TabOrder = 3
+    end
+    object ButtonAddBound: TButton
+      Left = 478
+      Height = 27
+      Top = 195
+      Width = 120
+      Caption = 'Hinzufügen'
+      TabOrder = 4
+      OnClick = ButtonAddBoundClick
+    end
+    object ButtonClearBounds: TButton
+      Left = 606
+      Height = 27
+      Top = 195
+      Width = 90
+      Caption = 'Leeren'
+      TabOrder = 5
+      OnClick = ButtonClearBoundsClick
+    end
+    object ButtonTestBoundsFromJson: TButton
+      Left = 966
+      Height = 26
+      Top = 226
+      Width = 200
+      Anchors = [akTop, akRight]
+      Caption = 'JSON als TestBounds'
+      OnClick = ButtonTestBoundsFromJsonClick
+      TabOrder = 25
+    end
+    object LabelBoundHint: TLabel
+      Left = 706
+      Height = 1
+      Top = 200
+      Width = 1
+      ParentColor = False
+    end
+    object MemoBounds: TMemo
+      Left = 100
+      Height = 76
+      Top = 228
+      Width = 360
+      Font.Height = -12
+      Font.Name = 'Menlo'
+      ParentFont = False
+      ScrollBars = ssAutoVertical
+      TabOrder = 6
+      WordWrap = False
+      OnChange = MemoBoundsChange
+    end
+    object LabelBoundsJson: TLabel
+      Left = 478
+      Height = 16
+      Top = 232
+      Width = 120
+      Caption = 'geht als JSON raus:'
+      ParentColor = False
+    end
+    object EditBoundsJson: TEdit
+      Left = 478
+      Height = 19
+      Top = 254
+      Width = 684
+      Anchors = [akTop, akLeft, akRight]
+      Font.Height = -12
+      Font.Name = 'Menlo'
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 7
+    end
+    object CheckInline: TCheckBox
+      Left = 100
+      Height = 18
+      Top = 312
+      Width = 352
+      Caption = 'Gegenprobe: Werte einsetzen statt binden (bindet nichts)'
+      TabOrder = 8
+    end
+    object CheckGenerateSql: TCheckBox
+      Left = 480
+      Height = 18
+      Top = 288
+      Width = 267
+      Caption = 'SQL beim Aufruf erzeugen (kein Template)'
+      TabOrder = 14
+      OnChange = CheckGenerateSqlChange
+    end
+    object ButtonRecordDialog: TButton
+      Left = 760
+      Height = 27
+      Top = 284
+      Width = 220
+      Caption = 'Record-Werte eingeben...'
+      TabOrder = 17
+      OnClick = ButtonRecordDialogClick
+    end
+    object LabelKeyField: TLabel
+      Left = 926
+      Height = 16
+      Top = 168
+      Width = 61
+      Caption = 'Schlüssel:'
+      ParentColor = False
+    end
+    object EditKeyField: TEdit
+      Left = 1000
+      Height = 21
+      Top = 164
+      Width = 166
+      Anchors = [akTop, akLeft, akRight]
+      TabOrder = 15
+    end
+    object ButtonSqlFromRecord: TButton
+      Left = 1000
+      Height = 27
+      Top = 284
+      Width = 166
+      Caption = 'SQL ins Feld erzeugen'
+      TabOrder = 22
+      OnClick = ButtonSqlFromRecordClick
+    end
+    object LabelFilter: TLabel
+      Left = 470
+      Height = 16
+      Top = 318
+      Width = 34
+      Caption = 'Filter:'
+      ParentColor = False
+    end
+    object EditFilter: TEdit
+      Left = 520
+      Height = 21
+      Top = 314
+      Width = 380
+      TabOrder = 20
+    end
+    object LabelOrderBy: TLabel
+      Left = 910
+      Height = 16
+      Top = 318
+      Width = 67
+      Caption = 'Sortierung:'
+      ParentColor = False
+    end
+    object EditOrderBy: TEdit
+      Left = 990
+      Height = 21
+      Top = 314
+      Width = 176
+      TabOrder = 21
+    end
+    object LabelRecordDecl: TLabel
+      Left = 8
+      Height = 16
+      Top = 350
+      Width = 91
+      Caption = 'Record-Felder:'
+      ParentColor = False
+    end
+    object MemoRecordDecl: TMemo
+      Left = 100
+      Height = 32
+      Top = 346
+      Width = 1066
+      Anchors = [akTop, akLeft, akRight]
+      Font.Height = -12
+      Font.Name = 'Menlo'
+      ParentFont = False
+      ScrollBars = ssAutoBoth
+      TabOrder = 16
+      WordWrap = False
+    end
+    object LabelCallerScope: TLabel
+      Left = 12
+      Height = 16
+      Top = 386
+      Width = 83
+      Caption = 'Caller-Scope:'
+      ParentColor = False
+    end
+    object EditCallerScope: TEdit
+      Left = 100
+      Height = 21
+      Top = 382
+      Width = 160
+      TabOrder = 18
+      TextHint = 'leer, oder userid'
+    end
+    object LabelRules: TLabel
+      Left = 290
+      Height = 16
+      Top = 386
+      Width = 45
+      Caption = 'Regeln:'
+      ParentColor = False
+    end
+    object EditRules: TEdit
+      Left = 350
+      Height = 21
+      Top = 382
+      Width = 410
+      TabOrder = 23
+      TextHint = 'z.B. 1:notempty;2:plz;3:email'
+    end
+    object LabelTestBounds: TLabel
+      Left = 790
+      Height = 16
+      Top = 386
+      Width = 72
+      Caption = 'TestBounds:'
+      ParentColor = False
+    end
+    object EditTestBounds: TEdit
+      Left = 870
+      Height = 21
+      Top = 382
+      Width = 296
+      Anchors = [akTop, akLeft, akRight]
+      TabOrder = 24
+      TextHint = 'Werte für den Sammellauf, z.B. ["Wegberg"]'
+    end
+    object cbRollback: TCheckBox
+      Left = 928
+      Height = 18
+      Top = 199
+      Width = 75
+      Caption = 'Rollback'
+      Checked = True
+      State = cbChecked
+      TabOrder = 19
+      OnChange = cbRollbackChange
+    end
+  end
+  object SplitterEdit: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 8
+    Top = 384
+    Width = 1180
+    Align = alTop
+    Beveled = True
+    MinSize = 60
+    ResizeAnchor = akTop
+  end
+  object PanelActions: TPanel
+    Left = 0
+    Height = 100
+    Top = 392
+    Width = 1180
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 100
+    ClientWidth = 1180
+    TabOrder = 3
+    object ButtonCheck: TButton
+      Left = 12
+      Height = 27
+      Top = 8
+      Width = 100
+      Caption = 'Prüfen'
+      TabOrder = 0
+      OnClick = ButtonCheckClick
+    end
+    object ButtonTest: TButton
+      Left = 120
+      Height = 27
+      Top = 8
+      Width = 100
+      Caption = 'Testen'
+      TabOrder = 1
+      OnClick = ButtonTestClick
+    end
+    object ButtonCheckAll: TButton
+      Left = 346
+      Height = 27
+      Top = 8
+      Width = 140
+      Caption = 'Alle prüfen'
+      TabOrder = 5
+      OnClick = ButtonCheckAllClick
+    end
+    object ButtonSave: TButton
+      Left = 228
+      Height = 27
+      Top = 8
+      Width = 110
+      Caption = 'Speichern'
+      TabOrder = 2
+      OnClick = ButtonSaveClick
+    end
+    object LabelServer: TLabel
+      Left = 510
+      Height = 16
+      Top = 14
+      Width = 43
+      Caption = 'Server:'
+      ParentColor = False
+    end
+    object EditServer: TEdit
+      Left = 560
+      Height = 21
+      Top = 9
+      Width = 150
+      TabOrder = 4
+    end
+    object ButtonReloadServer: TButton
+      Left = 720
+      Height = 27
+      Top = 8
+      Width = 160
+      Caption = 'Server neu laden'
+      TabOrder = 3
+      OnClick = ButtonReloadServerClick
+    end
+    object LabelKeyFilter: TLabel
+      Left = 12
+      Height = 16
+      Top = 45
+      Width = 42
+      Caption = 'Suche:'
+      ParentColor = False
+    end
+    object EditKeyFilter: TEdit
+      Left = 60
+      Height = 21
+      Top = 41
+      Width = 190
+      TabOrder = 6
+      OnChange = EditKeyFilterChange
+    end
+    object cbViaServer: TCheckBox
+      Left = 266
+      Height = 18
+      Top = 42
+      Width = 320
+      Caption = 'über den Server ausführen (mit Anmeldung)'
+      TabOrder = 5
+      OnChange = cbViaServerChange
+    end
+    object LabelStatus: TLabel
+      Left = 266
+      Height = 1
+      Top = 72
+      Width = 902
+      Anchors = [akTop, akLeft, akRight]
+      Font.Height = -13
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+      ShowAccelChar = False
+    end
+  end
+  object PagesResult: TPageControl
+    Left = 256
+    Height = 208
+    Top = 620
+    Width = 924
+    ActivePage = TabDto
+    Align = alClient
+    TabIndex = 2
+    TabOrder = 4
+    object TabJson: TTabSheet
+      Caption = 'JSON'
+      ClientHeight = 204
+      ClientWidth = 918
+      object PanelJsonTop: TPanel
+        Left = 0
+        Height = 30
+        Top = 0
+        Width = 918
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 30
+        ClientWidth = 918
+        TabOrder = 0
+        object CheckRawJson: TCheckBox
+          Left = 8
+          Height = 18
+          Top = 4
+          Width = 289
+          Caption = 'roh anzeigen (genau die Bytes, die rausgehen)'
+          TabOrder = 0
+          OnChange = CheckRawJsonChange
+        end
+      end
+      object MemoJson: TMemo
+        Left = 0
+        Height = 174
+        Top = 30
+        Width = 918
+        Align = alClient
+        Font.Height = -12
+        Font.Name = 'Menlo'
+        ParentFont = False
+        ReadOnly = True
+        ScrollBars = ssAutoBoth
+        TabOrder = 1
+        WordWrap = False
+      end
+    end
+    object TabTable: TTabSheet
+      Caption = 'Tabelle'
+      ClientHeight = 204
+      ClientWidth = 918
+      object GridResult: TStringGrid
+        Left = 0
+        Height = 204
+        Top = 0
+        Width = 918
+        Align = alClient
+        ColCount = 1
+        FixedCols = 0
+        FixedRows = 0
+        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goSmoothScroll]
+        RowCount = 1
+        TabOrder = 0
+      end
+    end
+    object TabDto: TTabSheet
+      Caption = 'Typ'
+      ClientHeight = 204
+      ClientWidth = 918
+      object PanelDtoTop: TPanel
+        Left = 0
+        Height = 44
+        Top = 0
+        Width = 918
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 44
+        ClientWidth = 918
+        TabOrder = 0
+        object LabelTypeName: TLabel
+          Left = 12
+          Height = 16
+          Top = 14
+          Width = 59
+          Caption = 'Typname:'
+          ParentColor = False
+        end
+        object EditTypeName: TEdit
+          Left = 100
+          Height = 21
+          Top = 9
+          Width = 260
+          TabOrder = 0
+        end
+        object ButtonGenerate: TButton
+          Left = 372
+          Height = 27
+          Top = 8
+          Width = 180
+          Caption = 'Typ aus Ergebnis erzeugen'
+          TabOrder = 1
+          OnClick = ButtonGenerateClick
+        end
+        object ButtonCopyDto: TButton
+          Left = 562
+          Height = 27
+          Top = 8
+          Width = 160
+          Caption = 'In die Zwischenablage'
+          TabOrder = 2
+          OnClick = ButtonCopyDtoClick
+        end
+      end
+      object MemoDto: TMemo
+        Left = 0
+        Height = 160
+        Top = 44
+        Width = 918
+        Align = alClient
+        Font.Height = -12
+        Font.Name = 'Menlo'
+        ParentFont = False
+        ScrollBars = ssAutoBoth
+        TabOrder = 1
+        WordWrap = False
+      end
+    end
+    object TabLog: TTabSheet
+      Caption = 'Meldungen'
+      ClientHeight = 204
+      ClientWidth = 918
+      object MemoLog: TMemo
+        Left = 0
+        Height = 204
+        Top = 0
+        Width = 918
+        Align = alClient
+        Font.Height = -12
+        Font.Name = 'Menlo'
+        ParentFont = False
+        ReadOnly = True
+        ScrollBars = ssAutoBoth
+        TabOrder = 0
+        WordWrap = False
+      end
+    end
+  end
+end

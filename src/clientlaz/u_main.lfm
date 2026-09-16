@@ -1,0 +1,186 @@
+object FormMain: TFormMain
+  Left = 320
+  Height = 560
+  Top = 180
+  Width = 846
+  Caption = 'SQL Template Service - Test Client'
+  ClientHeight = 560
+  ClientWidth = 846
+  Position = poScreenCenter
+  OnCreate = FormCreate
+  object PanelTop: TPanel
+    Left = 0
+    Height = 100
+    Top = 0
+    Width = 846
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 100
+    ClientWidth = 846
+    TabOrder = 0
+    object LabelProfile: TLabel
+      Left = 8
+      Height = 16
+      Top = 6
+      Width = 40
+      Caption = 'Profil:'
+      ParentColor = False
+    end
+    object ComboProfile: TComboBox
+      Left = 64
+      Height = 21
+      Top = 2
+      Width = 300
+      ItemHeight = 15
+      Style = csDropDownList
+      TabOrder = 0
+      OnChange = ComboProfileChange
+    end
+    object LabelServer: TLabel
+      Left = 376
+      Height = 16
+      Top = 6
+      Width = 43
+      Caption = 'Server:'
+      ParentColor = False
+    end
+    object EditServer: TEdit
+      Left = 424
+      Height = 21
+      Top = 2
+      Width = 150
+      TabOrder = 1
+      Text = 'localhost:8890'
+    end
+    object ButtonTest: TButton
+      Left = 586
+      Height = 24
+      Top = 1
+      Width = 190
+      Caption = 'Typisierter Test (demo)'
+      TabOrder = 2
+      OnClick = ButtonTestClick
+    end
+    object LabelAction: TLabel
+      Left = 8
+      Height = 16
+      Top = 36
+      Width = 46
+      Caption = 'Aktion:'
+      ParentColor = False
+    end
+    object ComboAction: TComboBox
+      Left = 64
+      Height = 21
+      Top = 32
+      Width = 300
+      ItemHeight = 15
+      TabOrder = 3
+    end
+    object LabelBounds: TLabel
+      Left = 376
+      Height = 16
+      Top = 36
+      Width = 47
+      Caption = 'Bounds:'
+      ParentColor = False
+    end
+    object EditBounds: TEdit
+      Left = 424
+      Height = 21
+      Top = 32
+      Width = 150
+      TabOrder = 4
+      Text = '[]'
+    end
+    object ButtonRun: TButton
+      Left = 586
+      Height = 24
+      Top = 31
+      Width = 190
+      Caption = 'Aktion ausführen'
+      TabOrder = 5
+      OnClick = ButtonRunClick
+    end
+    object LabelView: TLabel
+      Left = 8
+      Height = 16
+      Top = 68
+      Width = 49
+      Caption = 'Ansicht:'
+      ParentColor = False
+    end
+    object SpeedTable: TSpeedButton
+      Left = 64
+      Height = 24
+      Top = 64
+      Width = 90
+      Caption = 'Tabelle'
+      Down = True
+      GroupIndex = 1
+      OnClick = SpeedViewClick
+    end
+    object ButtonLogin: TButton
+      Left = 586
+      Height = 24
+      Top = 61
+      Width = 190
+      Caption = 'Anmelden...'
+      TabOrder = 7
+      OnClick = ButtonLoginClick
+    end
+    object ButtonActions: TButton
+      Left = 376
+      Height = 24
+      Top = 62
+      Width = 198
+      Caption = 'Aktionen vom Server holen'
+      TabOrder = 6
+      OnClick = ButtonActionsClick
+    end
+    object SpeedJson: TSpeedButton
+      Left = 158
+      Height = 24
+      Top = 64
+      Width = 90
+      Caption = 'JSON'
+      GroupIndex = 1
+      OnClick = SpeedViewClick
+    end
+  end
+  object MemoLog: TMemo
+    Left = 0
+    Height = 460
+    Top = 100
+    Width = 406
+    Align = alLeft
+    Font.Height = -12
+    Font.Name = 'Menlo'
+    HideSelection = False
+    ParentFont = False
+    ScrollBars = ssAutoBoth
+    TabOrder = 1
+    WordWrap = False
+  end
+  object SplitterResult: TSplitter
+    Left = 406
+    Height = 460
+    Top = 100
+    Width = 5
+  end
+  object Memo1: TMemo
+    Left = 411
+    Height = 460
+    Top = 100
+    Width = 435
+    Align = alClient
+    Font.Height = -12
+    Font.Name = 'Menlo'
+    HideSelection = False
+    ParentFont = False
+    ReadOnly = True
+    ScrollBars = ssAutoBoth
+    TabOrder = 2
+    WordWrap = False
+  end
+end
