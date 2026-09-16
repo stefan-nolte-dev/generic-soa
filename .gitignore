@@ -64,5 +64,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# lokales Uebergabedokument, nicht fuer das oeffentliche Repo
+# lokale Arbeitsdokumente, nicht fuer das oeffentliche Repo
 HANDOFF.md
+TODO.md
