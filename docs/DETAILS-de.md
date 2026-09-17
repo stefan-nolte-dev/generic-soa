@@ -1501,8 +1501,11 @@ das mit Absicht. Was es entschärft: eine *fehlende* `templates.sqlite` wird aus
 *laufenden* Server angeboten wird, wird abgelehnt — er bedient weiter den, den
 er hatte. Nur eine kaputte Datei beim Start ist tödlich, dann aber laut.
 
-Ein Prozess je Template-Datei. Zwei Profile dürfen nebeneinander laufen — sie
+Ein Prozess je Zieldatenbank. Zwei Profile dürfen nebeneinander laufen — sie
 haben eigene Ports und eigene Datenbanken —, ein zweiter Server auf derselben
-SQLite-Datei scheitert aber beim Start und meldet den oben beschriebenen
+SQLite-*Zieldatei* scheitert aber beim Start und meldet den oben beschriebenen
 Fehler vom beschädigten Dateikopf. Er sagt jetzt dazu, was das gewöhnlich
-bedeutet, statt mit der Formulierung des Treibers allein abzubrechen.
+bedeutet, statt mit der Formulierung des Treibers allein abzubrechen. Die
+Template-Datei ist davon nicht betroffen — sie wird gelesen und wieder
+geschlossen, siehe oben —, und gegen SQL Server tritt der Fall gar nicht auf:
+dort ist ein zweiter Prozess auf derselben Datenbank der Normalfall.

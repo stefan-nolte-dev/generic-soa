@@ -1421,8 +1421,10 @@ it: a *missing* `templates.sqlite` is rebuilt from `templates.sql` next to it,
 and a bad set offered to a *running* server is refused, leaving it on the one
 it already had. Only a broken file at startup is fatal, and then loudly.
 
-One process per templates file. Two profiles may run side by side - they have
+One process per target database. Two profiles may run side by side - they have
 their own ports and their own databases - but a second server on the same
-SQLite file fails at startup, and reports the header-not-a-database error
-described above. It now says what that usually means instead of aborting with
-the driver's wording alone.
+SQLite *target* file fails at startup, and reports the header-not-a-database
+error described above. It now says what that usually means instead of aborting
+with the driver's wording alone. The templates file is not affected - it is
+read and closed again, see above - and against SQL Server the case does not
+arise at all: a second process on the same database is the normal thing there.
