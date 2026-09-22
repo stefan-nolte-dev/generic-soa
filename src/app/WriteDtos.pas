@@ -16,13 +16,33 @@ unit WriteDtos;
   - the field names have to match the table's column names (or the :Names of
     a written statement)
   - every record has to be registered below, or Rtti.FindName cannot resolve
-    the name and the server answers sqlFailed }
+    the name and the server answers sqlFailed
+
+  Registered from TEXT, not from TypeInfo alone. FPC only emits the names of
+  a record's fields as extended RTTI on trunk - mORMot defines
+  HASEXTRECORDRTTI for 3.3 and 3.4 and for nothing else, and without it
+  TRttiInfo.RecordAllFields returns nil. A type registered by TypeInfo would
+  then arrive with no properties at all: the editor's record dialog opens on
+  zero fields, and the server generates a statement that names no column. The
+  declaration below is what a stock FPC 3.2 build has instead, and what a
+  trunk build reads identically - so both produce the same record.
+
+  The declarations are packed, and so are the records: RegisterFromText lays
+  the fields out end to end and refuses the registration when the result is
+  not the size the RTTI reports. A field added above but not below therefore
+  fails loudly at startup rather than quietly shifting a value. }
 
 interface
 
 uses
   mormot.core.base,
-  mormot.core.rtti;
+  mormot.core.rtti,
+  { not used by name below, and not optional: RegisterFromText resolves the
+    field types through the JSON serializer's own RTTI class, which
+    mormot.core.json installs in ITS initialization. Naming the unit here is
+    what orders the two - without it this unit may register first, and the
+    registration faults }
+  mormot.core.json;
 
 type
 
@@ -56,11 +76,21 @@ type
 
 implementation
 
+const
+  { the field names and types as text, in declaration order - see the note at
+    the top of this unit for why the TypeInfo() alone will not do }
+  _TDtoCustomer =
+    'ID: integer; Name: RawUtf8; City: RawUtf8';
+  _TDtoInvoiceRow =
+    'CustomerID: integer; Amount: currency; InvoiceDate: TDateTime';
+  _TDtoArtikel =
+    'ID: integer; ArtNr: integer; ArtName: RawUtf8; Kind: RawUtf8';
+
 initialization
   { the server finds these by name and nothing else, so they have to be here }
-  Rtti.RegisterTypes([
-    TypeInfo(TDtoCustomer),
-    TypeInfo(TDtoInvoiceRow),
-    TypeInfo(TDtoArtikel)]);
+  Rtti.RegisterFromText([
+    TypeInfo(TDtoCustomer),   _TDtoCustomer,
+    TypeInfo(TDtoInvoiceRow), _TDtoInvoiceRow,
+    TypeInfo(TDtoArtikel),    _TDtoArtikel]);
 
 end.
