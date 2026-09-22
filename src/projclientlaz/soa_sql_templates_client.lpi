@@ -90,7 +90,7 @@
     <SearchPaths>
       <IncludeFiles Value="../commonserv;../common;../client;../clienttests;../clientlaz;../ui;../app"/>
       <OtherUnitFiles Value="../common;../client;../clienttests;../clientlaz;../ui;../app"/>
-      <UnitOutputDirectory Value="../../libclient/$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="../../libclient/$(TargetCPU)-$(TargetOS)/$(FPCVer)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

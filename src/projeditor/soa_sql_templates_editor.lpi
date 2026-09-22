@@ -22,7 +22,7 @@
           <SearchPaths>
             <IncludeFiles Value="../commonserv;../common;../infra;../app;../client;../editor;$(ProjOutDir)"/>
             <OtherUnitFiles Value="../commonserv;../common;../infra;../dom;../app;../client;../ui;../editor"/>
-            <UnitOutputDirectory Value="../../libeditor/$(TargetCPU)-$(TargetOS)"/>
+            <UnitOutputDirectory Value="../../libeditor/$(TargetCPU)-$(TargetOS)/$(FPCVer)"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -57,7 +57,7 @@
           <SearchPaths>
             <IncludeFiles Value="../commonserv;../common;../infra;../app;../client;../editor;$(ProjOutDir)"/>
             <OtherUnitFiles Value="../commonserv;../common;../infra;../dom;../app;../client;../ui;../editor"/>
-            <UnitOutputDirectory Value="../../libeditor/$(TargetCPU)-$(TargetOS)"/>
+            <UnitOutputDirectory Value="../../libeditor/$(TargetCPU)-$(TargetOS)/$(FPCVer)"/>
           </SearchPaths>
           <CodeGeneration>
             <SmartLinkUnit Value="True"/>
@@ -168,7 +168,7 @@
     <SearchPaths>
       <IncludeFiles Value="../commonserv;../common;../infra;../app;../client;../editor;$(ProjOutDir)"/>
       <OtherUnitFiles Value="../commonserv;../common;../infra;../dom;../app;../client;../ui;../editor"/>
-      <UnitOutputDirectory Value="../../libeditor/$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="../../libeditor/$(TargetCPU)-$(TargetOS)/$(FPCVer)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
