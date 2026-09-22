@@ -168,7 +168,7 @@
       <Filename Value="../../bin/soa_sql_templates_server"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="../commonserv;../common;../infra;../app;../serv/app"/>
+      <IncludeFiles Value="../commonserv;../common;../infra;../app;../serv/app;$(ProjOutDir)"/>
       <OtherUnitFiles Value="../commonserv;../common;../infra;../dom;../app;../serv/app"/>
       <UnitOutputDirectory Value="../../lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
