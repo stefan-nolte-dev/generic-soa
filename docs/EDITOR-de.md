@@ -134,6 +134,7 @@ Häkchen **über den Server ausführen (mit Anmeldung)** unten:
 | **Speichern** | schreibt das Template in die Datei und exportiert `templates.sql` daneben |
 | **Alle prüfen** | derselbe Prüflauf über alle Templates |
 | **Server neu laden** | der Server liest seine Templates neu |
+| **Create-Table-SQL erzeugen** | beschreibt die Tabelle, die der Record-Typ braucht, im Dialekt der Auswahlliste daneben — Ergebnis steht im Log und auf der Zwischenablage. Erzeugt nur, führt nichts aus, und braucht keine Verbindung: gedacht für das Schema, das man jemandem gibt, der die Rechte auf dem Zielserver hat |
 | **Neu / Löschen** | Template anlegen bzw. entfernen |
 | **Typ aus Ergebnis erzeugen** | baut aus dem letzten Ergebnis eine Record-Deklaration (Reiter *Typ*) |
 | **Gegenprobe** | setzt Werte in den Text ein, statt sie zu binden — nur zum Ansehen, so läuft nichts in Produktion |
