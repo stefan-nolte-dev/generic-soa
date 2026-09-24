@@ -82,6 +82,8 @@ type
     ButtonSave: TButton;
     ButtonSqlFromRecord: TButton;
     ButtonCreateTable: TButton;
+    ComboDialect: TComboBox;
+    LabelDialect: TLabel;
     ButtonTest: TButton;
     cbRollback: TCheckBox;
     cbViaServer: TCheckBox;
@@ -323,6 +325,18 @@ begin
     result := engSQLite;
 end;
 
+{ And which spelling that profile's database wants, for the drop-down's
+  starting value. Same table, same two cases - and unlike the driver above
+  this one is only a suggestion: the statement is generated for whichever
+  database the person picks, connected or not. }
+function ProfileDialect(const Profile: TSqlProfile): TDdlDialect;
+begin
+  if Profile.TargetDatabase <> '' then
+    result := ddMSSQL
+  else
+    result := ddSQLite;
+end;
+
 { LCL strings are UTF-8 encoded, and so is RawUtf8, so this is a copy and not
   a conversion. It exists to make the assignment explicit rather than to do
   work. }
@@ -336,6 +350,7 @@ end;
 procedure TFormEditor.FormCreate(Sender: TObject);
 var
   k: TBoundKind;
+  d: TDdlDialect;
   i: PtrInt;
 begin
   Application.OnException := @AppException;
@@ -353,6 +368,13 @@ begin
   { absolute, and next to the executable rather than relative to the working
     directory: started from the IDE the working directory is the project
     folder, and a bare 'demo.sqlite' would be looked for in the wrong place }
+  { which database a generated create table is spelled for. Filled from the
+    same table that spells it, so the list and the statement cannot disagree
+    about how many dialects there are }
+  ComboDialect.Items.Clear;
+  for d := low(TDdlDialect) to high(TDdlDialect) do
+    ComboDialect.Items.Add(U(DDL_DIALECTS[d].Name));
+  ComboDialect.ItemIndex := ord(ddSQLite);
   { the profiles, from the same table the server and the client read: picking
     one points the editor at that profile's templates AND at the database
     those templates run against - the two belong together, and editing the
@@ -788,6 +810,10 @@ begin
   finally
     fSyncingBoxes := false;
   end;
+  { preselected, not decided: a create table is an artefact to hand on, and
+    the database it is meant for is regularly not the one connected here.
+    The profile is the better guess than nothing, and it stays a guess }
+  ComboDialect.ItemIndex := ord(ProfileDialect(SQL_PROFILES[i]));
   if SQL_PROFILES[i].TargetDatabase <> '' then
   begin
     { before anything touches the driver: OpenSSL is initialised once, and a
@@ -1333,10 +1359,11 @@ end;
   So it lands in the log and on the clipboard, and creating the table stays
   something somebody does with their eyes open.
 
-  SQLite only, and the connected profile decides that: integer, text, real
-  and autoincrement are SQLite's spelling, and against SQL Server they would
-  not be imprecise but wrong. Refusing beats handing over a statement whose
-  first line the server rejects. }
+  Which database it is spelled for is the drop-down next to it, and NOT the
+  open connection. The profile only preselects it: the case this is for is
+  the schema you hand to somebody who has the rights you do not, and being
+  logged into that server is exactly what you are not. Nothing here touches
+  the database, so it works unconnected. }
 procedure TFormEditor.ButtonCreateTableClick(Sender: TObject);
 var
   rec: TSqlRec;
@@ -1350,14 +1377,13 @@ begin
       'beschrieben, und ohne Record gibt es keine.', stBad);
     exit;
   end;
-  if TEditorEngine(ComboEngine.ItemIndex) <> engSQLite then
-  begin
-    Say('Nur für SQLite: integer/text/real und autoincrement sind SQLites ' +
-      'Schreibweise, gegen den SQL Server wäre das nicht ungenau, sondern ' +
-      'falsch.', stBad);
-    exit;
-  end;
-  if CreateTableSqlFor(rec, sql, msg) <> rbOk then
+  { the box is filled in FormCreate and set again with every profile, so
+    this is belt and braces - but an ItemIndex of -1 cast to the enum is a
+    range error rather than a wrong dialect, and that is worth one line }
+  if ComboDialect.ItemIndex < 0 then
+    ComboDialect.ItemIndex := ord(ddSQLite);
+  if CreateTableSqlFor(rec, TDdlDialect(ComboDialect.ItemIndex),
+       sql, msg) <> rbOk then
   begin
     Log(msg);
     Say(ShortReason(msg), stBad);

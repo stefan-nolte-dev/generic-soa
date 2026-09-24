@@ -132,24 +132,121 @@ function RetrieveSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
   out Msg: RawUtf8): TRecordBindResult;
 
 
-/// the SQLite table this record type would need, as a statement to read
+type
+  /// whose spelling a generated create table is written in
+  // - the connected profile only PRESELECTS this: the statement is an
+  // artefact to hand on, so which database it is meant for is something the
+  // person knows and the open connection does not
+  // - the list is meant to grow, and one more entry in DDL_DIALECTS is what
+  // a new one costs
+  TDdlDialect = (
+    ddSQLite,
+    ddMSSQL,
+    ddPostgreSQL,
+    ddMySQL);
+
+  /// the handful of column shapes a record field is stored in
+  // - fewer than there are field types on purpose: what a create table has
+  // to know about a field is how wide it is and whether it is a number, not
+  // which Pascal type it came from
+  TDdlColumn = (
+    dcInteger,
+    dcBigInt,
+    dcFloat,
+    dcMoney,
+    dcDate,
+    dcText,
+    dcBlob);
+
+  /// everything two dialects spell differently, and nothing else
+  TDdlDialectDef = record
+    /// what the drop-down shows
+    Name: RawUtf8;
+    /// the column type per shape
+    Column: array[TDdlColumn] of RawUtf8;
+    /// the key the database fills itself - % is the column name
+    // - this is the one mORMot's own SqlCreate does NOT write: its ORM hands
+    // out the key itself, and a generated insert here leaves it to the
+    // database, so the column has to count up on its own
+    AutoKey: RawUtf8;
+    /// put between "create table" and the name, where the guard goes there
+    IfNotExists: RawUtf8;
+    /// put in FRONT of the whole statement, where it does not - % is the
+    // table name
+    Guard: RawUtf8;
+  end;
+
+const
+  /// one row per dialect, and adding a database means adding a row
+  DDL_DIALECTS: array[TDdlDialect] of TDdlDialectDef = (
+    (Name: 'SQLite';
+     Column: (
+       'integer', 'integer', 'real', 'real', 'text', 'text', 'blob');
+     AutoKey: '% integer primary key autoincrement';
+     IfNotExists: 'if not exists ';
+     Guard: ''),
+    (Name: 'SQL Server';
+     Column: (
+       'int', 'bigint', 'float', 'money', 'datetime',
+       { nvarchar(max) and not nvarchar(n): a record type states no width,
+         and a number invented here would be the only thing in the output
+         that nothing derived. This is also what mORMot's own DB_FIELDS puts
+         in the slot for a text column that was never given one }
+       'nvarchar(max)', 'varbinary(max)');
+     AutoKey: '% int identity(1,1) primary key';
+     { SQL Server has no "if not exists" on create table, so the guard is a
+       statement of its own in front of it }
+     IfNotExists: '';
+     Guard: 'if not exists (select * from sys.objects' + #13#10 +
+            '  where object_id = object_id(''%'') and type = ''U'')'#13#10),
+    (Name: 'PostgreSQL';
+     Column: (
+       'integer', 'bigint', 'double precision', 'numeric(19,4)', 'timestamp',
+       { unbounded AND indexable, so unlike SQL Server there is nothing to
+         trade off here }
+       'text', 'bytea');
+     AutoKey: '% serial primary key';
+     IfNotExists: 'if not exists ';
+     Guard: ''),
+    { MariaDB is a dialect of its own to mORMot, but not to this table: the
+      create table it wants is the same one, down to auto_increment }
+    (Name: 'MySQL / MariaDB';
+     Column: (
+       'int', 'bigint', 'double', 'decimal(19,4)', 'datetime',
+       'mediumtext', 'mediumblob');
+     AutoKey: '% int auto_increment primary key';
+     IfNotExists: 'if not exists ';
+     Guard: ''));
+
+  /// a key the caller supplies rather than the database - % name, % type
+  // - the same three words everywhere, so it is not in the table above
+  DDL_GIVENKEY = '% % primary key';
+
+
+/// the table this record type would need, in Dialect's spelling, as a
+// statement to read
 // - the cheap half of "create the table": this generates, it never executes.
 // What comes back is meant to be looked at, copied and run by hand - which
 // is the whole difference between a sample that creates nothing and one that
 // creates something behind your back
-// - SQLite spelling on purpose: integer/text/real, "if not exists", and
-// "autoincrement" on the key. Those are the affinities demo.sql already
-// writes out by hand, so what this composes and what the demo database holds
-// are the same table
+// - it needs no connection, which is the point of taking the dialect as a
+// parameter: the statement for a database nobody here is logged into is
+// exactly the one somebody has to be handed
+// - for ddSQLite what comes out is the schema demo.sql already writes by
+// hand, down to the affinities
 // - the key column is there whether or not the record carries it: a
 // generated retrieve and a generated delete both match on it, so a table
 // without it would break two of the four verbs. When the record does not
 // declare it, it is put in front and Msg says so
 // - nullability, defaults, indexes and foreign keys are NOT generated. A
 // record type states none of them, and inventing them here would be this
-// code deciding something the declaration never said
-function CreateTableSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
-  out Msg: RawUtf8): TRecordBindResult;
+// code deciding something the declaration never said. Nor is a text width:
+// every dialect gets its unbounded text column, so no number in what comes
+// out was invented here
+// - the key comes out as a counting integer, which is the only key mORMot's
+// own ORM knows: its external tables get an Int64 ID and nothing else
+function CreateTableSqlFor(const Rec: TSqlRec; Dialect: TDdlDialect;
+  out Sql: RawUtf8; out Msg: RawUtf8): TRecordBindResult;
 
 /// 'TDtoCustomer' -> 'Customer', and 'TDtoArtikel' -> 'Artikel'
 // - both affixes are optional and matched case insensitively, as is the type
@@ -636,18 +733,13 @@ begin
     result := GenerateFrom(Rec, rc, Sql, names, Msg);
 end;
 
-{ the SQLite column one field of this type is stored in.
+{ the column shape one field of this type is stored in.
 
-  These are the affinities demo.sql writes by hand, and no others: a date is
-  text because that is what the demo tables hold and what the driver reads a
-  varDate back out of, and a currency is real for the same reason.
-
-  No width anywhere, which is the one thing that makes this generator cheap:
-  SQLite parses a width and then ignores it, so there is nothing a RawUtf8
-  field would have to declare here that the record does not already say. The
-  same function against SQL Server would need nvarchar(n) and a length, and
-  the record type has no place to put one. }
-function SqliteColumnType(pt: TRttiParserType; out ColType: RawUtf8): boolean;
+  Which database is not asked here: a currency is money-shaped everywhere,
+  and what that is called is the dialect table's business. That split is what
+  makes a new database a row in DDL_DIALECTS rather than a second copy of
+  this case statement. }
+function DdlColumnOf(pt: TRttiParserType; out Col: TDdlColumn): boolean;
 begin
   result := true;
   case pt of
@@ -655,20 +747,23 @@ begin
     ptByte,
     ptWord,
     ptInteger,
-    ptCardinal,
+    ptCardinal:
+      Col := dcInteger;
     ptInt64,
     ptQWord,
     ptTimeLog,
     ptUnixTime,
     ptUnixMSTime:
-      ColType := 'integer';
-    ptCurrency,
+      Col := dcBigInt;
     ptDouble,
     ptSingle,
     ptExtended:
-      ColType := 'real';
+      Col := dcFloat;
+    ptCurrency:
+      Col := dcMoney;
     ptDateTime,
-    ptDateTimeMS,
+    ptDateTimeMS:
+      Col := dcDate;
     ptRawUtf8,
     ptString,
     ptSynUnicode,
@@ -676,24 +771,25 @@ begin
     ptWinAnsi,
     ptRawJson,
     ptGuid:
-      ColType := 'text';
+      Col := dcText;
     ptRawByteString:
-      ColType := 'blob';
+      Col := dcBlob;
   else
     begin
-      { refused rather than guessed: a column of the wrong affinity is a
-        table that looks right and reads values back as something else }
-      ColType := '';
+      { refused rather than guessed: a column of the wrong shape is a table
+        that looks right and reads values back as something else }
+      Col := dcText;
       result := false;
     end;
   end;
 end;
 
-function CreateTableSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
-  out Msg: RawUtf8): TRecordBindResult;
+function CreateTableSqlFor(const Rec: TSqlRec; Dialect: TDdlDialect;
+  out Sql: RawUtf8; out Msg: RawUtf8): TRecordBindResult;
 var
   rc: TRttiCustom;
-  table, keyfield, coltype, cols: RawUtf8;
+  table, keyfield, cols, name: RawUtf8;
+  col: TDdlColumn;
   haskey: boolean;
   i: PtrInt;
 begin
@@ -727,42 +823,46 @@ begin
   if not haskey then
     { the record does not carry the key, but every generated retrieve and
       every generated delete of this template matches on it - so the table
-      needs the column even though no field describes it. Integer, because
-      that is the one a generated insert leaves to the database }
-    cols := FormatUtf8('  % integer primary key autoincrement', [keyfield]);
+      needs the column even though no field describes it. One the database
+      fills, because that is what a generated insert leaves out }
+    cols := '  ' + FormatUtf8(DDL_DIALECTS[Dialect].AutoKey, [keyfield]);
   for i := 0 to rc.Props.Count - 1 do
   begin
-    if not SqliteColumnType(rc.Props.List[i].Value.Parser, coltype) then
+    name := rc.Props.List[i].Name;
+    if not DdlColumnOf(rc.Props.List[i].Value.Parser, col) then
     begin
       Msg := FormatUtf8('% field [%] is a %, and there is no column for it',
-        [rc.Name, rc.Props.List[i].Name,
+        [rc.Name, name,
          RawUtf8(mormot.core.rtti.ToText(rc.Props.List[i].Value.Parser)^)]);
       exit(rbUnknownField);
     end;
     if cols <> '' then
       cols := cols + ','#13#10;
-    if not IdemPropNameU(rc.Props.List[i].Name, keyfield) then
-      cols := cols + FormatUtf8('  % %', [rc.Props.List[i].Name, coltype])
-    else if coltype = 'integer' then
-      { SQLite makes a column the rowid alias only for this exact spelling -
-        "bigint primary key" is an ordinary indexed column, and an insert
-        that leaves the key out would then fail on a not-null rowid }
-      cols := cols + FormatUtf8('  % integer primary key autoincrement',
-        [rc.Props.List[i].Name])
+    if not IdemPropNameU(name, keyfield) then
+      cols := cols + FormatUtf8('  % %', [name, DDL_DIALECTS[Dialect].Column[col]])
+    else if col in [dcInteger, dcBigInt] then
+      cols := cols + '  ' + FormatUtf8(DDL_DIALECTS[Dialect].AutoKey, [name])
     else
-      { a key the caller supplies: no autoincrement, because there is
-        nothing to count up }
-      cols := cols + FormatUtf8('  % % primary key',
-        [rc.Props.List[i].Name, coltype]);
+      { a key the caller supplies: nothing counts up, and the column keeps
+        the very type the field maps to - one column per field, here as
+        everywhere else }
+      cols := cols + '  ' + FormatUtf8(DDL_GIVENKEY,
+        [name, DDL_DIALECTS[Dialect].Column[col]]);
   end;
-  Sql := FormatUtf8('create table if not exists % ('#13#10'%);', [table, cols]);
+  { plain concatenation and not one big FormatUtf8: the guard carries its own
+    % for the table name, and two format strings feeding each other is the
+    kind of thing that works until a dialect puts a per cent sign in one }
+  Sql := FormatUtf8(DDL_DIALECTS[Dialect].Guard, [table]) +
+         'create table ' + DDL_DIALECTS[Dialect].IfNotExists + table +
+         ' ('#13#10 + cols + ');';
   if haskey then
-    Msg := FormatUtf8('% from %, % column(s)',
-      [table, rc.Name, rc.Props.Count])
+    Msg := FormatUtf8('% from %, % column(s), % spelling',
+      [table, rc.Name, rc.Props.Count, DDL_DIALECTS[Dialect].Name])
   else
-    Msg := FormatUtf8('% from %, % column(s) plus [%], which the record ' +
-      'does not declare and a generated retrieve and delete match on',
-      [table, rc.Name, rc.Props.Count, keyfield]);
+    Msg := FormatUtf8('% from %, % column(s) in % spelling, plus [%], which ' +
+      'the record does not declare and a generated retrieve and delete ' +
+      'match on', [table, rc.Name, rc.Props.Count,
+      DDL_DIALECTS[Dialect].Name, keyfield]);
 end;
 
 function BindRecordJson(const Rec: TSqlRec; const Json: RawUtf8;

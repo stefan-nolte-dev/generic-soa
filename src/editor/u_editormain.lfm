@@ -689,6 +689,23 @@ object FormEditor: TFormEditor
       TabOrder = 7
       OnClick = ButtonCreateTableClick
     end
+    object LabelDialect: TLabel
+      Left = 850
+      Height = 16
+      Top = 45
+      Width = 46
+      Caption = 'Dialekt:'
+      ParentColor = False
+    end
+    object ComboDialect: TComboBox
+      Left = 904
+      Height = 20
+      Top = 41
+      Width = 150
+      ItemHeight = 16
+      Style = csDropDownList
+      TabOrder = 8
+    end
     object cbViaServer: TCheckBox
       Left = 266
       Height = 18
