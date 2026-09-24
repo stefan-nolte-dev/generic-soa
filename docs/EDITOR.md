@@ -135,6 +135,7 @@ The box **über den Server ausführen (mit Anmeldung)** at the bottom:
 | **Speichern** | writes the template to the file and exports `templates.sql` beside it |
 | **Alle prüfen** | the same check over every template |
 | **Server neu laden** | the server re-reads its templates |
+| **Create-Table-SQL erzeugen** | describes the table the record type needs, in the dialect of the drop-down beside it — the result goes to the log and the clipboard. It only composes, it runs nothing, and it needs no connection: this is for the schema you hand to somebody who has the rights on the target server |
 | **Neu / Löschen** | add or remove a template |
 | **Typ aus Ergebnis erzeugen** | builds a record declaration from the last result (tab *Typ*) |
 | **Gegenprobe** | puts the values into the text instead of binding them — to look at only, nothing runs that way in production |
