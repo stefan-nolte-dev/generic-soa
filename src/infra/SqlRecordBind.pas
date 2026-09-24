@@ -132,6 +132,25 @@ function RetrieveSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
   out Msg: RawUtf8): TRecordBindResult;
 
 
+/// the SQLite table this record type would need, as a statement to read
+// - the cheap half of "create the table": this generates, it never executes.
+// What comes back is meant to be looked at, copied and run by hand - which
+// is the whole difference between a sample that creates nothing and one that
+// creates something behind your back
+// - SQLite spelling on purpose: integer/text/real, "if not exists", and
+// "autoincrement" on the key. Those are the affinities demo.sql already
+// writes out by hand, so what this composes and what the demo database holds
+// are the same table
+// - the key column is there whether or not the record carries it: a
+// generated retrieve and a generated delete both match on it, so a table
+// without it would break two of the four verbs. When the record does not
+// declare it, it is put in front and Msg says so
+// - nullability, defaults, indexes and foreign keys are NOT generated. A
+// record type states none of them, and inventing them here would be this
+// code deciding something the declaration never said
+function CreateTableSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
+  out Msg: RawUtf8): TRecordBindResult;
+
 /// 'TDtoCustomer' -> 'Customer', and 'TDtoArtikel' -> 'Artikel'
 // - both affixes are optional and matched case insensitively, as is the type
 // name itself when the registry is asked for it
@@ -615,6 +634,135 @@ begin
   result := ResolveRecordType(Rec, rc, Msg);
   if result = rbOk then
     result := GenerateFrom(Rec, rc, Sql, names, Msg);
+end;
+
+{ the SQLite column one field of this type is stored in.
+
+  These are the affinities demo.sql writes by hand, and no others: a date is
+  text because that is what the demo tables hold and what the driver reads a
+  varDate back out of, and a currency is real for the same reason.
+
+  No width anywhere, which is the one thing that makes this generator cheap:
+  SQLite parses a width and then ignores it, so there is nothing a RawUtf8
+  field would have to declare here that the record does not already say. The
+  same function against SQL Server would need nvarchar(n) and a length, and
+  the record type has no place to put one. }
+function SqliteColumnType(pt: TRttiParserType; out ColType: RawUtf8): boolean;
+begin
+  result := true;
+  case pt of
+    ptBoolean,
+    ptByte,
+    ptWord,
+    ptInteger,
+    ptCardinal,
+    ptInt64,
+    ptQWord,
+    ptTimeLog,
+    ptUnixTime,
+    ptUnixMSTime:
+      ColType := 'integer';
+    ptCurrency,
+    ptDouble,
+    ptSingle,
+    ptExtended:
+      ColType := 'real';
+    ptDateTime,
+    ptDateTimeMS,
+    ptRawUtf8,
+    ptString,
+    ptSynUnicode,
+    ptWideString,
+    ptWinAnsi,
+    ptRawJson,
+    ptGuid:
+      ColType := 'text';
+    ptRawByteString:
+      ColType := 'blob';
+  else
+    begin
+      { refused rather than guessed: a column of the wrong affinity is a
+        table that looks right and reads values back as something else }
+      ColType := '';
+      result := false;
+    end;
+  end;
+end;
+
+function CreateTableSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
+  out Msg: RawUtf8): TRecordBindResult;
+var
+  rc: TRttiCustom;
+  table, keyfield, coltype, cols: RawUtf8;
+  haskey: boolean;
+  i: PtrInt;
+begin
+  Sql := '';
+  Msg := '';
+  result := ResolveRecordType(Rec, rc, Msg);
+  if result <> rbOk then
+    exit;
+  { rc.Name and not Rec.RecordType, exactly as GenerateKind does it: the
+    lookup ignores case, so the table name has to come from the declaration }
+  table := TableFromRecordType(rc.Name);
+  if table = '' then
+  begin
+    Msg := FormatUtf8('no table name left of [%]', [Rec.RecordType]);
+    exit(rbNoTable);
+  end;
+  if rc.Props.Count = 0 then
+  begin
+    { on FPC 3.2 this is what a type registered by TypeInfo() alone looks
+      like - see the note at the top of WriteDtos }
+    Msg := FormatUtf8('% has no field, so there is no table to describe',
+      [rc.Name]);
+    exit(rbNoField);
+  end;
+  keyfield := KeyFieldOf(Rec);
+  haskey := false;
+  for i := 0 to rc.Props.Count - 1 do
+    if IdemPropNameU(rc.Props.List[i].Name, keyfield) then
+      haskey := true;
+  cols := '';
+  if not haskey then
+    { the record does not carry the key, but every generated retrieve and
+      every generated delete of this template matches on it - so the table
+      needs the column even though no field describes it. Integer, because
+      that is the one a generated insert leaves to the database }
+    cols := FormatUtf8('  % integer primary key autoincrement', [keyfield]);
+  for i := 0 to rc.Props.Count - 1 do
+  begin
+    if not SqliteColumnType(rc.Props.List[i].Value.Parser, coltype) then
+    begin
+      Msg := FormatUtf8('% field [%] is a %, and there is no column for it',
+        [rc.Name, rc.Props.List[i].Name,
+         RawUtf8(mormot.core.rtti.ToText(rc.Props.List[i].Value.Parser)^)]);
+      exit(rbUnknownField);
+    end;
+    if cols <> '' then
+      cols := cols + ','#13#10;
+    if not IdemPropNameU(rc.Props.List[i].Name, keyfield) then
+      cols := cols + FormatUtf8('  % %', [rc.Props.List[i].Name, coltype])
+    else if coltype = 'integer' then
+      { SQLite makes a column the rowid alias only for this exact spelling -
+        "bigint primary key" is an ordinary indexed column, and an insert
+        that leaves the key out would then fail on a not-null rowid }
+      cols := cols + FormatUtf8('  % integer primary key autoincrement',
+        [rc.Props.List[i].Name])
+    else
+      { a key the caller supplies: no autoincrement, because there is
+        nothing to count up }
+      cols := cols + FormatUtf8('  % % primary key',
+        [rc.Props.List[i].Name, coltype]);
+  end;
+  Sql := FormatUtf8('create table if not exists % ('#13#10'%);', [table, cols]);
+  if haskey then
+    Msg := FormatUtf8('% from %, % column(s)',
+      [table, rc.Name, rc.Props.Count])
+  else
+    Msg := FormatUtf8('% from %, % column(s) plus [%], which the record ' +
+      'does not declare and a generated retrieve and delete match on',
+      [table, rc.Name, rc.Props.Count, keyfield]);
 end;
 
 function BindRecordJson(const Rec: TSqlRec; const Json: RawUtf8;

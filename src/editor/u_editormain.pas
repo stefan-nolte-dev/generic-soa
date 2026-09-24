@@ -81,6 +81,7 @@ type
     ButtonReloadServer: TButton;
     ButtonSave: TButton;
     ButtonSqlFromRecord: TButton;
+    ButtonCreateTable: TButton;
     ButtonTest: TButton;
     cbRollback: TCheckBox;
     cbViaServer: TCheckBox;
@@ -181,6 +182,7 @@ type
     procedure ButtonReloadServerClick(Sender: TObject);
     procedure ButtonSaveClick(Sender: TObject);
     procedure ButtonSqlFromRecordClick(Sender: TObject);
+    procedure ButtonCreateTableClick(Sender: TObject);
     procedure ButtonTestClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -1319,6 +1321,56 @@ begin
   end;
   Say('Das Template trägt jetzt ein eigenes Statement und folgt dem ' +
     'Record-Typ nicht mehr. Speichern nicht vergessen.', stOk);
+end;
+
+{ The table this record type would need - composed, not run.
+
+  That is the whole feature and the restraint is the point: the statement is
+  put where it can be read and nothing is executed. A tool that creates
+  tables on a keystroke is one nobody dares point at a database that
+  matters, and this one is meant to be pointed at whatever you have.
+
+  So it lands in the log and on the clipboard, and creating the table stays
+  something somebody does with their eyes open.
+
+  SQLite only, and the connected profile decides that: integer, text, real
+  and autoincrement are SQLite's spelling, and against SQL Server they would
+  not be imprecise but wrong. Refusing beats handing over a statement whose
+  first line the server rejects. }
+procedure TFormEditor.ButtonCreateTableClick(Sender: TObject);
+var
+  rec: TSqlRec;
+  sql, msg: RawUtf8;
+begin
+  PagesResult.ActivePage := TabLog;
+  rec := CurrentRec;
+  if rec.RecordType = '' then
+  begin
+    Say('Kein Record-Typ: die Spalten werden aus den Feldern des Records ' +
+      'beschrieben, und ohne Record gibt es keine.', stBad);
+    exit;
+  end;
+  if TEditorEngine(ComboEngine.ItemIndex) <> engSQLite then
+  begin
+    Say('Nur für SQLite: integer/text/real und autoincrement sind SQLites ' +
+      'Schreibweise, gegen den SQL Server wäre das nicht ungenau, sondern ' +
+      'falsch.', stBad);
+    exit;
+  end;
+  if CreateTableSqlFor(rec, sql, msg) <> rbOk then
+  begin
+    Log(msg);
+    Say(ShortReason(msg), stBad);
+    exit;
+  end;
+  Log(msg);
+  Log(sql);
+  Log('Was hier NICHT steht, sagt der Record-Typ auch nicht: not null, ' +
+      'Vorgabewerte, Indizes, Fremdschlüssel. Die schreibst du dazu, bevor ' +
+      'du das Statement ausführst.');
+  Clipboard.AsText := SafeText(sql);
+  Say('Create-Table steht im Log und auf der Zwischenablage. Ausgeführt ' +
+    'wird nichts - die Tabelle legst du selbst an.', stOk);
 end;
 
 procedure TFormEditor.ButtonTestClick(Sender: TObject);
