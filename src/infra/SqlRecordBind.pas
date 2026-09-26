@@ -12,21 +12,22 @@ unit SqlRecordBind;
   A record template comes either way round.
 
   WITHOUT a statement everything is generated, from the record and the action
-  key - OrmUpdateTDtoCustomer + TDtoCustomer gives
+  key - OrmTDtoCustomerUpdate + TDtoCustomer gives
     update Customer set Name = ?, City = ? where ID = ?
   on conventions that are each one constant and one function: the key is
-  marked Orm and then names a verb (SqlTemplateTypes, because the domain
-  layer reads the same mark and must not see this unit), the table is the
+  marked Orm, spells the record type and then names a verb (SqlTemplateTypes,
+  because the domain layer reads the same mark and must not see this unit),
+  the table is the
   record type without its TDto prefix and Row suffix, the key column is what
   KeyField says and ID when it says nothing.
 
   Four verbs, and only two of them take a record. An insert and an update
-  send one; a retrieve and a delete send the key alone, because the columns
-  to read are the record type's business and the server knows the type from
-  the template - which is what an ORM does when it sends a list of field
-  names rather than a record. So those two carry no record here at all: this
-  unit only composes their statement, and the ordinary bound-value path runs
-  it.
+  send one; a retrieve sends the values of its where clause and a delete the
+  key alone, because the columns to read are the record type's business and
+  the server knows the type from the template - which is what an ORM does
+  when it sends a list of field names rather than a record. So those two
+  carry no record here at all: this unit only composes their statement, and
+  the ordinary bound-value path runs it.
 
   The record type is either compiled in and registered - see WriteDtos - or
   declared as text in the RecordDecl column and registered from there on
@@ -115,8 +116,10 @@ function GeneratedSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
 // statement carrying ? is refused (rbQuestionMark). So for those two kinds
 // the ? are put back as the names they stand for, and what comes out can be
 // edited, saved and run
-// - a retrieve, a list and a delete bind nothing from a record: their ? are
-// the caller's values and stay ?
+// - a delete binds nothing from a record: its ? is the caller's key and
+// stays ?
+// - a retrieve is refused: it carries no statement, only a where clause and
+// an order, and the select around them is always the record type's
 // - for the editor, which offers this as the starting point for a statement
 // the convention cannot express - a big record is not one anybody wants to
 // type out
@@ -124,9 +127,9 @@ function EditableSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
   out Msg: RawUtf8): TRecordBindResult;
 
 /// the select that would fetch the row this template is about
-// - the template's OWN verb is not consulted: an update is asked for the row
-// it is about to overwrite, and that is a retrieve on the same record type
-// and the same key column. Which is why this is here and not a second rule
+// - the template's OWN verb and where clause are not consulted: an update is
+// asked for the row it is about to overwrite, and that is a select on the
+// same record type and the same key column. Which is why this is here and not a second rule
 // in the editor - it is the retrieve branch, asked for by name
 function RetrieveSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
   out Msg: RawUtf8): TRecordBindResult;
@@ -409,15 +412,12 @@ begin
       Names[n] := rc.Props.List[i].Name;
       inc(n);
     end;
-  if Kind in [raRetrieve, raList] then
+  if Kind = raRetrieve then
   begin
     { every field, the key included: what comes back has to load into the
       same record type on the other side, so the column list is the record
-      and not a subset of it. The key is NOT taken from the record here -
-      there is no record yet, that is what is being fetched - so it may name
-      a column this type does not carry, and the where clause still holds.
-      A list wants that same column list, which is why it shares this branch:
-      the one and the many differ in their where clause, not in their shape }
+      and not a subset of it. One row or many is the where clause's business,
+      not the shape's - both come back as an array }
     all := '';
     for i := 0 to rc.Props.Count - 1 do
     begin
@@ -427,24 +427,18 @@ begin
     end;
     if all = '' then
       exit(rbNoField);
-    Names := nil; // the one bound value is the caller's key, not a field
-    if Kind = raRetrieve then
-      Sql := FormatUtf8('select % from % where % = ?;', [all, Table, KeyField])
-    else
-    begin
-      { A list is the same select with the template's own where clause in
-        place of the key - and with it parenthesised, so that whatever the
-        template wrote there cannot change how a condition appended after it
-        binds. Today that is the caller scope the domain layer appends; an
-        "or" in an unparenthesised filter would quietly let rows past it. }
-      where := '';
-      if Rec.Filter <> '' then
-        where := FormatUtf8(' where (%)', [Rec.Filter]);
-      order := '';
-      if Rec.OrderBy <> '' then
-        order := FormatUtf8(' order by %', [Rec.OrderBy]);
-      Sql := FormatUtf8('select % from %%%;', [all, Table, where, order]);
-    end;
+    Names := nil; // the bound values are the caller's, not fields
+    { The template's own where clause, parenthesised, so that whatever it
+      wrote there cannot change how a condition appended after it binds.
+      Today that is the caller scope the domain layer appends; an "or" in an
+      unparenthesised filter would quietly let rows past it. }
+    where := '';
+    if Rec.Filter <> '' then
+      where := FormatUtf8(' where (%)', [Rec.Filter]);
+    order := '';
+    if Rec.OrderBy <> '' then
+      order := FormatUtf8(' order by %', [Rec.OrderBy]);
+    Sql := FormatUtf8('select % from %%%;', [all, Table, where, order]);
     exit(rbOk);
   end;
   if n = 0 then
@@ -624,12 +618,10 @@ begin
       [Rec.ActionKey, RECORDACTION_PREFIX]);
     exit(rbNotOrmAction);
   end;
-  kind := RecordKindFromActionKey(Rec.ActionKey);
+  kind := RecordKindOf(Rec);
   if kind = raNone then
   begin
-    Msg := FormatUtf8('% is marked as an ORM action but names no verb ' +
-      'after %: Add/Insert, Update, Retrieve/Get or Delete',
-      [Rec.ActionKey, RECORDACTION_PREFIX]);
+    Msg := OrmKeyProblem(Rec);
     exit(rbNoWriteKind);
   end;
   result := GenerateKind(Rec, rc, kind, Sql, Names, Msg);
@@ -640,11 +632,18 @@ function RetrieveSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
 var
   rc: TRttiCustom;
   names: TRawUtf8DynArray;
+  one: TSqlRec;
 begin
   Sql := '';
   result := ResolveRecordType(Rec, rc, Msg);
-  if result = rbOk then
-    result := GenerateKind(Rec, rc, raRetrieve, Sql, names, Msg);
+  if result <> rbOk then
+    exit;
+  { one row by its key, whatever the template's own where clause says: this
+    is the record an update is about to change, not a query a caller asked }
+  one := Rec;
+  one.Filter := FormatUtf8('% = ?', [KeyFieldOf(Rec)]);
+  one.OrderBy := '';
+  result := GenerateKind(one, rc, raRetrieve, Sql, names, Msg);
 end;
 
 { put the ? back as the :Names they stand for, in order - the reverse of
@@ -679,34 +678,22 @@ function EditableSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
 var
   rc: TRttiCustom;
   names: TRawUtf8DynArray;
-  one: TSqlRec;
-  reading: boolean;
 begin
   Sql := '';
   result := ResolveRecordType(Rec, rc, Msg);
   if result <> rbOk then
     exit;
-  one := Rec;
-  reading := RecordKindFromActionKey(Rec.ActionKey) in [raRetrieve, raList];
-  if reading then
+  if RecordKindOf(Rec) = raRetrieve then
   begin
-    { A draft to go on writing, so it stops where the writing starts. The
-      column list and the table come out of the record type - that is the
-      part nobody wants to type, and for a record of thirty fields it is the
-      whole reason this button exists. The where clause is the part being
-      written, so it is not put there: neither the key of a retrieve nor the
-      filter of a list, which would only have to be deleted again.
-      Asking for a list with no filter is exactly that select, so the kind is
-      overridden rather than the text cut up afterwards.
-      A delete keeps its where clause and that is not a symmetry worth
-      fixing: "delete from Customer" as a starting point sits one keystroke
-      away from an emptied table. }
-    one.Filter := '';
-    one.OrderBy := '';
-    result := GenerateKind(one, rc, raList, Sql, names, Msg);
-  end
-  else
-    result := GenerateFrom(one, rc, Sql, names, Msg);
+    { A retrieve carries no statement of its own - its where clause and its
+      order are the template, and the select around them is the record
+      type's. A draft of that select would be the one thing in the box that
+      is not the template's to write }
+    Msg := FormatUtf8('% is a retrieve: write its where clause, the select ' +
+      'around it comes from %', [Rec.ActionKey, Rec.RecordType]);
+    exit(rbNoWriteKind);
+  end;
+  result := GenerateFrom(Rec, rc, Sql, names, Msg);
   if result <> rbOk then
     exit;
   if names <> nil then
@@ -892,8 +879,7 @@ begin
   end;
   { and a retrieve or a delete is not one a record is sent into: their one
     value is the key, and it travels as an ordinary bound parameter }
-  if RecordKindFromActionKey(Rec.ActionKey) in
-       [raRetrieve, raList, raDelete] then
+  if RecordKindOf(Rec) in [raRetrieve, raDelete] then
   begin
     Msg := FormatUtf8('% reads or deletes: send the key or the filter''s ' +
       'values as bound values, not a record', [Rec.ActionKey]);

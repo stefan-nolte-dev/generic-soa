@@ -107,8 +107,8 @@ function Run(Db: TEditorDb; const ActionKey, Sql: RawUtf8;
 
 /// run a template that carries no statement of its own
 // - a retrieve and a delete are made from the action key and the record type
-// alone, so there is nothing in the SQL box to hand to Run - and the one
-// bound value is the key, not a record: Add/Insert and Update are the two
+// alone, so there is nothing in the SQL box to hand to Run - and the bound
+// values are the where clause's or the key, not a record: Add and Update are the two
 // that need one, and RunRecord is theirs
 // - the statement is NOT generated here: the record travels down with an
 // empty Sql and the server's own execution code makes it, the way it will be
@@ -429,9 +429,8 @@ begin
       what runs here is the generator that will run there and not a copy of
       it. Asking the generator a second time is for the display only, and a
       refusal is left to the call that follows, which words it better. }
-    case RecordKindFromActionKey(rec.ActionKey) of
-      raRetrieve,
-      raList:
+    case RecordKindOf(rec) of
+      raRetrieve:
         result.Kind := skSelect;
       raDelete:
         result.Kind := skWrite;
@@ -578,26 +577,25 @@ begin
     result.Message := 'Not connected to a database.';
     exit;
   end;
-  kind := RecordKindFromActionKey(Rec.ActionKey);
-  if not (kind in [raRetrieve, raList, raDelete]) then
+  kind := RecordKindOf(Rec);
+  if not (kind in [raRetrieve, raDelete]) then
   begin
     { an insert and an update are made from a record, and the values below
       the statement are not one - the dialog is where that record comes from }
     result.Message := FormatUtf8('% hat kein Statement, und ohne Record ' +
-      'entstehen nur Retrieve, List und Delete. Add/Insert und Update ' +
-      'brauchen einen Record: "Record-Werte eingeben...".',
-      [Rec.ActionKey]);
+      'entstehen nur Retrieve und Delete. Add und Update brauchen einen ' +
+      'Record: "Record-Werte eingeben...".', [Rec.ActionKey]);
     exit;
   end;
-  { How many ? the statement will have is known before it exists: the key is
-    one, and a list has what its filter carries. Counted here for the same
-    reason Run counts its own: an unbound ? is a NULL and no rows on SQLite,
-    and an exception with no reason on ODBC }
+  { How many ? the statement will have is known before it exists: a retrieve
+    has what its where clause carries, a delete the one key. Counted here for
+    the same reason Run counts its own: an unbound ? is a NULL and no rows on
+    SQLite, and an exception with no reason on ODBC }
   wanted := ExpectedParamCount(Rec);
   if length(Bounds) <> wanted then
   begin
-    if kind = raList then
-      result.Message := FormatUtf8('Der Filter dieses Templates hat % ?, ' +
+    if kind = raRetrieve then
+      result.Message := FormatUtf8('Das where dieses Templates hat % ?, ' +
         'angegeben sind % Werte.', [wanted, length(Bounds)])
     else
       result.Message := FormatUtf8('Ein erzeugtes % nimmt genau einen ' +

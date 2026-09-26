@@ -180,11 +180,11 @@ var
   found: TDtoCustomerArray;
   status: TSqlStatus;
 begin
-  Head(Log, 'OrmAddTDtoCustomer - no statement at all, generated on arrival');
+  Head(Log, 'OrmTDtoCustomerAdd - no statement at all, generated on arrival');
   cust.ID := 0; // filled by the database, and the insert does not name it
   cust.Name := 'Rekord GmbH';
   cust.City := 'Xanten';
-  status := WriteRecord('OrmAddTDtoCustomer', cust, TypeInfo(TDtoCustomer));
+  status := WriteRecord('OrmTDtoCustomerAdd', cust, TypeInfo(TDtoCustomer));
   ShowStatus(Log, status);
 
   found := nil;
@@ -194,10 +194,10 @@ begin
   if found = nil then
     exit;
 
-  Head(Log, 'OrmUpdateTDtoCustomer - generated too, ID goes to the where');
+  Head(Log, 'OrmTDtoCustomerUpdate - generated too, ID goes to the where');
   cust.ID := found[0].ID;
   cust.City := 'Goch';
-  status := WriteRecord('OrmUpdateTDtoCustomer', cust, TypeInfo(TDtoCustomer));
+  status := WriteRecord('OrmTDtoCustomerUpdate', cust, TypeInfo(TDtoCustomer));
   ShowStatus(Log, status);
   found := nil;
   ParseDynArray('GetCustomersByCity', _Arr(['Goch']),
@@ -207,18 +207,18 @@ begin
   { The point of the whole exercise: InvoiceDate is a TDateTime here and is
     bound as a date, not as text. Nothing in the call says so - the record
     does, and the server reads the record back into the same type. }
-  Head(Log, 'OrmAddTDtoInvoiceRow - a TDateTime and a currency, bound as such');
+  Head(Log, 'OrmTDtoInvoiceRowAdd - a TDateTime and a currency, bound as such');
   inv.CustomerID := found[0].ID;
   inv.Amount := 1234.56;
   inv.InvoiceDate := EncodeDate(2026, 8, 31) + EncodeTime(14, 30, 0, 0);
-  status := WriteRecord('OrmAddTDtoInvoiceRow', inv, TypeInfo(TDtoInvoiceRow));
+  status := WriteRecord('OrmTDtoInvoiceRowAdd', inv, TypeInfo(TDtoInvoiceRow));
   ShowStatus(Log, status);
 
   { the same shape the long way, with a written statement }
-  Head(Log, 'OrmUpdateCustomerRecord - the written statement, same record');
+  Head(Log, 'OrmTDtoCustomerUpdateNameCity - the written statement, same record');
   cust.City := 'Drolshagen';
   ShowStatus(Log,
-    WriteRecord('OrmUpdateCustomerRecord', cust, TypeInfo(TDtoCustomer)));
+    WriteRecord('OrmTDtoCustomerUpdateNameCity', cust, TypeInfo(TDtoCustomer)));
   found := nil;
   ParseDynArray('GetCustomersByCity', _Arr(['Drolshagen']),
     found, TypeInfo(TDtoCustomerArray));
@@ -228,31 +228,31 @@ begin
     sent but the key. Which columns to read is the record type's business,
     and the server knows it from the template - the same thing an ORM does
     when it sends a list of field names rather than a record. }
-  Head(Log, 'OrmRetrieveTDtoCustomer - the key goes out, the record comes back');
+  Head(Log, 'OrmTDtoCustomerRetrieve - the key goes out, the record comes back');
   back.ID := 0;
   back.Name := '';
   back.City := '';
-  status := RetrieveRecord('OrmRetrieveTDtoCustomer', found[0].ID,
+  status := RetrieveRecord('OrmTDtoCustomerRetrieve', found[0].ID,
     back, TypeInfo(TDtoCustomer));
   ShowStatus(Log, status);
   Log.Add(U(FormatUtf8('  ID % / % / %', [back.ID, back.Name, back.City])));
 
   Head(Log, 'the same key on a row that is not there');
-  ShowStatus(Log, RetrieveRecord('OrmRetrieveTDtoCustomer', 999999,
+  ShowStatus(Log, RetrieveRecord('OrmTDtoCustomerRetrieve', 999999,
     back, TypeInfo(TDtoCustomer)));
 
   Head(Log, 'the wrong method for a record key, and the wrong record for a key');
   Log.Add('  WriteDataForAction on a record key -> ' + U(ToText(
-    SqlTool.WriteDataForAction('OrmAddTDtoCustomer', _Arr(['x', 'y'])))));
+    SqlTool.WriteDataForAction('OrmTDtoCustomerAdd', _Arr(['x', 'y'])))));
   Log.Add('  WriteRecord on a value list key   -> ' + U(ToText(
     WriteRecord('AddCustomer', cust, TypeInfo(TDtoCustomer)))));
 
   { and the tidy-up is the fourth verb: the row this procedure created goes
-    out through OrmDeleteTDtoCustomer, which carries no statement either }
-  Head(Log, 'OrmDeleteTDtoCustomer - the key again, and nothing else');
-  ShowStatus(Log, DeleteRecord('OrmDeleteTDtoCustomer', found[0].ID));
+    out through OrmTDtoCustomerDelete, which carries no statement either }
+  Head(Log, 'OrmTDtoCustomerDelete - the key again, and nothing else');
+  ShowStatus(Log, DeleteRecord('OrmTDtoCustomerDelete', found[0].ID));
   Head(Log, 'and the same delete once more, on a key that is gone');
-  ShowStatus(Log, DeleteRecord('OrmDeleteTDtoCustomer', found[0].ID));
+  ShowStatus(Log, DeleteRecord('OrmTDtoCustomerDelete', found[0].ID));
 end;
 
 procedure Introspection(Log: TStrings);

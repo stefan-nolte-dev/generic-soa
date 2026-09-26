@@ -41,9 +41,17 @@ a whole record it does not, and it cannot: see *Writing a whole record* below.
 
 `ParseDynArray` is 16 lines, written once, and serves every query the server
 will ever offer — the same call site shape for every action key and every row
-shape. `ClientTests` shows it twice over on records that have nothing in
-common, `TDtoCustomer` and `TDtoTurnover`, and each block names the type it
-parsed into. The DTO lives in the client only. Nothing has to be mirrored
+shape. Two records that have nothing in common are filled by the same call,
+each naming the type it wants:
+
+```pascal
+ParseDynArray('GetCustomersByCity', _Arr(['Wegberg']),
+  Customers, TypeInfo(TDtoCustomerArray));
+ParseDynArray('GetTurnoverPerCustomer', _Arr([100.0]),
+  Turnover, TypeInfo(TDtoTurnoverArray));
+```
+
+The DTO lives in the client only. Nothing has to be mirrored
 across an application layer, a domain layer and a persistence layer, and there
 are no field-by-field converters between them.
 
@@ -167,7 +175,6 @@ src/serv/app/   ServSqlTemplates.pas        startup — sees everything
 src/client/     ClientDtos.pas              read-only records, client side only
                 AppSqlClient.pas            connection
                 u_client_parsing.pas        ParseDynArray, WriteRecord
-src/clienttests/ ClientTests.pas           the proof of concept
 src/clientlaz/ u_main.pas / .lfm           one button, one memo
 src/editor/     EditorDb.pas                the editor's own connection
                 SqlBounds.pas               typed parameters, and inlining them
@@ -200,7 +207,7 @@ The folders are what each project puts on its unit search path:
 
 | project | sees |
 |---|---|
-| client | `common`, `app`, `client`, `clienttests`, `clientlaz` |
+| client | `common`, `app`, `client`, `clientlaz` |
 | server | `common`, `commonserv`, `infra`, `dom`, `app`, `serv/app` |
 | editor | `common`, `commonserv`, `infra`, `dom`, `app`, `client`, `editor` |
 
@@ -406,9 +413,9 @@ database.
 
 | button | what it does |
 |---|---|
-| Record-Werte eingeben… | for an `OrmAdd…`/`OrmUpdate…` key: a dialog built from the fields of its record type — for an update, filled from the row that key names — and the record it produces run through the server's own binding, in the same transaction the Rollback box decides the end of |
+| Record-Werte eingeben… | for an `Orm…Add`/`Orm…Update` key: a dialog built from the fields of its record type — for an update, filled from the row that key names — and the record it produces run through the server's own binding, in the same transaction the Rollback box decides the end of |
 | Prüfen | the checks that need no database: parameter count against the `?` in the statement (ignoring any inside a string literal), a `where` in every update and delete wherever the verb stands - after a common table expression it is in the middle, which is where a missing `where` is easiest to overlook - a recognisable first keyword — then the whole set through `TSqlTemplateRegistry.Reload`, the same check the server applies on `ReloadTemplates`. What the editor accepts, the server accepts. |
-| Testen | runs it, on whichever of the two paths the checkbox selects. With nothing in the SQL box and a record type named, there is a third: the record goes down with an empty statement and the server's own code generates it - `SelectJson` for an `OrmRetrieve…`, `Execute` for an `OrmDelete…` - with the one bound value as the key. The kind is read off the action key, because there is no text to read it off yet. Selects show as JSON - reformatted, or exactly as it goes on the wire - and as a generically built table; writes are rolled back unless the Rollback box is unticked, and then they are committed and said to be. The `?` are counted before any driver is touched: a missing value is a NULL and no rows on SQLite and an exception with no recoverable reason on ODBC, and the count is the reason. A failure carries the driver's own words - the reason infra kept on the way out, or `Connection.LastErrorMessage` for a statement the driver refused outright - not a pointer to a log you cannot see, and brings the messages to the front rather than leaving an empty JSON tab there. |
+| Testen | runs it, on whichever of the two paths the checkbox selects. With nothing in the SQL box and a record type named, there is a third: the record goes down with an empty statement and the server's own code generates it - `SelectJson` for an `Orm…Retrieve…` with the values of its where clause, `Execute` for an `Orm…Delete` with the key. The kind is read off the action key, because there is no text to read it off yet. Selects show as JSON - reformatted, or exactly as it goes on the wire - and as a generically built table; writes are rolled back unless the Rollback box is unticked, and then they are committed and said to be. The `?` are counted before any driver is touched: a missing value is a NULL and no rows on SQLite and an exception with no recoverable reason on ODBC, and the count is the reason. A failure carries the driver's own words - the reason infra kept on the way out, or `Connection.LastErrorMessage` for a statement the driver refused outright - not a pointer to a log you cannot see, and brings the messages to the front rather than leaving an empty JSON tab there. |
 | aus Parametern übernehmen | fills `ParamTypes` from the kinds already chosen for the test values - the declaration and the values then cannot disagree. It fills itself while the field is empty; the button overwrites |
 | Typ aus Ergebnis erzeugen | the record and its array, ready to paste into `ClientDtos.pas` |
 | In die Zwischenablage | that source, on the clipboard |
@@ -577,7 +584,7 @@ had to move to add them** — which is the claim the table was there to make.
 | `RecordDecl` | the fields of that record, as mORMot's textual RTTI | the type has to be compiled into the server |
 | `KeyField` | the key column of a generated statement | `ID` |
 | `CallerScope` | bind the caller's identity to the last parameter | client sets every value |
-| `Filter` | the where clause of a generated list, without the word `where` | every row |
+| `Filter` | the where clause of a generated retrieve, without the word `where`; the editor shows it in the big box | every row |
 | `OrderBy` | its order, without the words `order by` | whatever order the database gives |
 
 With `RecordType` set, `Sql` may be **empty** — that is the one case an empty
@@ -710,7 +717,7 @@ statement, so what is under test is the generator that will actually run.
 Measured against `token strict`, 30 templates: as `user`, 15 run and 15 are
 open — writes left out, `GetGehaelter` open because group 2 is not theirs; as
 `admin` with writes allowed, all 30 run. The one finding in that run is
-`OrmAddTDtoArtikelRow` on the second sweep in a row: its `TestBounds` names a
+`OrmTDtoArtikelRowAdd` on the second sweep in a row: its `TestBounds` names a
 fixed `ArtNr`, and the unique index says so. A sweep that writes leaves rows
 behind, which is the point of asking first.
 
@@ -977,12 +984,12 @@ What is *not* shared is any code. The server names none of these records:
 
 ```pascal
 // client — one function for every record there will ever be
-status := WriteRecord('OrmUpdateTDtoCustomer', cust, TypeInfo(TDtoCustomer));
+status := WriteRecord('OrmTDtoCustomerUpdate', cust, TypeInfo(TDtoCustomer));
 ```
 
 ```
 -- templates.sqlite: the whole row. There is no statement.
-ActionKey  = 'OrmUpdateTDtoCustomer'
+ActionKey  = 'OrmTDtoCustomerUpdate'
 Sql        = ''
 RecordType = 'TDtoCustomer'
 ```
@@ -1006,7 +1013,7 @@ mORMot's textual RTTI, and the type is registered from that text the first
 time a call needs it.
 
 ```
-ActionKey  = 'OrmUpdateTDtoArtikelRow'
+ActionKey  = 'OrmTDtoArtikelRowUpdate'
 Sql        = ''
 RecordType = 'TDtoArtikelRow'
 RecordDecl = 'ArtNr: integer; ArtName: RawUtf8; Kind: RawUtf8'
@@ -1022,8 +1029,8 @@ inserts and updates, and the `currency` and `TDateTime` of a text-declared
 record are bound as themselves, exactly as a compiled one is.
 
 The shipped set has three of these to try, and no Pascal names any of their
-types: `OrmAddTDtoProjektRow` for a table with no DTO at all, and the pair above,
-`OrmAddTDtoArtikelRow` and `OrmUpdateTDtoArtikelRow`, which differ in one column —
+types: `OrmTDtoProjektRowAdd` for a table with no DTO at all, and the pair above,
+`OrmTDtoArtikelRowAdd` and `OrmTDtoArtikelRowUpdate`, which differ in one column —
 the insert leaves `KeyField` empty, so `ArtNr` is written like any other
 field, and the update names it, so it moves into the `where`. Measured: the
 insert adds a row with a database-assigned `ID`, the update changes it, and an
@@ -1069,9 +1076,18 @@ which call fits which key, and it must not see the unit that composes SQL:
 | | |
 |---|---|
 | the mark | the action key starts with `Orm`, and nothing that is not one of these does |
-| the verb | after the mark: `Add`/`Insert`, `Update`, `Retrieve`/`Get`, `List`/`Select` or `Delete` |
+| the type | after the mark, the record type spelled out in full, exactly as the `RecordType` column names it |
+| the verb | after the type: `Add`, `Update`, `Retrieve` or `Delete`; whatever follows is the author's name for it |
 | the table | the record type without its `TDto` prefix and `Row` suffix — `TDtoCustomerRow` → `Customer`, `TDtoArtikel` → `Artikel` |
 | the key | the column `KeyField` names, and `ID` when it names none: a generated insert leaves it to the database, a generated update puts it in the `where` |
+
+So a key reads `Orm<RecordType><Verb>[Name]`: `OrmTDtoCustomerAdd`,
+`OrmTDtoCustomerRetrieve`, `OrmTDtoCustomerRetrieveByCity`. The type is spelled
+out so the key alone says what travels, and because the `RecordType` column
+says where the type ends, `TDtoArtikel` and `TDtoArtikelRow` cannot be taken
+for one another. What follows the verb is chosen the way a function name is:
+two retrieves on one type differ there. A key that starts with `Orm` but does
+not continue with its record type and a verb is refused, with the reason.
 
 The key column was `ID` and nothing else until `KeyField` was added. The
 convention held in this sample and holds almost nowhere real: in a grown
@@ -1091,40 +1107,44 @@ from the caller reaches it, and the values are bound as before.
 ### Two verbs that send no record
 
 `Retrieve` and `Delete` are not the mirror image of `Add` and `Update`, and
-that is the interesting part. Nothing travels but the key:
+that is the interesting part. No record travels, only bound values:
 
 ```
-OrmRetrieveTDtoCustomer + TDtoCustomer  ->  select ID, Name, City from Customer where ID = ?
-OrmDeleteTDtoCustomer   + TDtoCustomer  ->  delete from Customer where ID = ?
+OrmTDtoCustomerRetrieve + TDtoCustomer + where 'ID = ?'
+  ->  select ID, Name, City from Customer where (ID = ?);
+OrmTDtoCustomerDelete   + TDtoCustomer
+  ->  delete from Customer where ID = ?;
 ```
 
 Which columns to read is the record type's business, and the server knows the
 type from the template — so a subset never has to be described by the caller.
-That is what an ORM does too: `Retrieve` sends an ID and, for a subset, a list
-of field names — never a record.
+That is what an ORM does too: `Retrieve` sends a where clause's values and,
+for a subset, a list of field names — never a record.
 
-For the key column the difference goes one step further. An update takes its
-key **out of the record**, so the record has to carry that field; a retrieve
-and a delete take it from the caller, so `KeyField` may name a column the
-record type does not have at all and the `where` clause still holds.
-
-And because the one value is an ordinary bound value, these two need no new
+And because those values are ordinary bound values, these two need no new
 call: a retrieve is `GetJsonFromAction` and a delete is `WriteDataForAction`,
 the same two methods every hand-written statement uses. The service contract
 did not change. What did change is one guard in the domain layer, which used
 to refuse any key that names a record type on the value-list path — a
 generated delete is exactly that and is now let through, by name.
 
-### The list: many rows, filtered by the template
+### The retrieve: a where clause, and nothing else
 
-`OrmList…` is the retrieve for more than one row. mORMot's `RetrieveList` takes
-its where clause from the **caller**; here it sits in the template, in the
-`Filter` column, and the caller fills its `?` and nothing else:
+A retrieve is the select of the record's columns, shaped by two columns of the
+template: `Filter`, the where clause without the word `where`, and `OrderBy`.
+mORMot's `Retrieve` and `RetrieveList` take their where clause from the
+**caller**; here it sits in the template, and the caller fills its `?` and
+nothing else:
 
 ```
-OrmListTDtoCustomer + TDtoCustomer + Filter 'City = ?' + OrderBy 'Name'
+OrmTDtoCustomerRetrieveByCity + TDtoCustomer + where 'City = ?' + order by 'Name'
   ->  select ID, Name, City from Customer where (City = ?) order by Name;
 ```
+
+One row or many is the where clause's business, and the answer is always an
+array. With no where clause at all it is every row — which is exactly what the
+editor shows under the box, so nobody is surprised by it. One row by its key
+is `ID = ?`, written like any other condition.
 
 Which splits the roles where they belong: **the shape of the query is the
 template's, the values are the caller's.** Nothing a client sends is ever read
@@ -1132,26 +1152,32 @@ as SQL, so the property this sample rests on is untouched - and the useful half
 of the ORM is still there: the column list comes from the record type, and the
 result loads into a `TDtoCustomerArray`.
 
-The filter goes in **parenthesised**, which is not cosmetic. The domain layer
-appends its own condition with `and` when `CallerScope` is set, and `and` binds
-tighter than `or`: an unparenthesised `City = ? or Name = ?` would let half the
-table past the scope. How many values such a template expects is known before
-the statement exists - `ExpectedParamCount` counts the `?` of the filter the
-way it otherwise counts those of the statement.
+The where clause goes in **parenthesised**, which is not cosmetic. The domain
+layer appends its own condition with `and` when `CallerScope` is set, and
+`and` binds tighter than `or`: an unparenthesised `City = ? or Name = ?` would
+let half the table past the scope. How many values such a template expects is
+known before the statement exists - `ExpectedParamCount` counts the `?` of the
+where clause the way it otherwise counts those of the statement, and the
+editor's *Prüfen* counts the same way the server does.
+
+A retrieve or a delete never carries a statement of its own. A select that
+needs a join, a column the record does not have, a group by, is not an ORM
+call and does not pretend to be one: it is an ordinary template, without the
+`Orm` mark, whose rows still load into a record type on the client. A row
+that has both is refused by the server, and the editor says so.
 
 | | sends | returns | method |
 |---|---|---|---|
-| `OrmAdd…` / `OrmUpdate…` | the whole record | a status | `WriteRecordForAction` |
-| `OrmRetrieve…` | the key | the row, into the same record type | `GetJsonFromAction` |
-| `OrmList…` | the filter's values | the rows, as an array of that type | `GetJsonFromAction` |
-| `OrmDelete…` | the key | a status | `WriteDataForAction` |
+| `Orm…Add` / `Orm…Update` | the whole record | a status | `WriteRecordForAction` |
+| `Orm…Retrieve…` | the where clause's values | the rows, as an array of that type | `GetJsonFromAction` |
+| `Orm…Delete` | the key | a status | `WriteDataForAction` |
 
 Measured, all four against `demo.sqlite`: insert, update, retrieve into a
-`TDtoCustomer` (`ID 29 / Rekord GmbH / Drolshagen`), delete. A retrieve on a
-key that is not there answers `sqlNoRows` and leaves the record untouched; a
-delete on one answers `sqlNothingWritten`. Sending a record into a retrieve is
-refused, and so is a record key without the `Orm` mark — *"takes a record but
-does not start with ORM"* in the log.
+`TDtoCustomer` (`ID 29 / Rekord GmbH / Drolshagen`), delete. A retrieve that
+matches nothing answers `sqlNoRows` and leaves the record untouched; a
+delete on a missing key answers `sqlNothingWritten`. Sending a record into a
+retrieve is refused, and so is a record key without the `Orm` mark — *"takes a
+record but does not start with ORM"* in the log.
 
 ### When the convention does not fit
 
@@ -1170,30 +1196,21 @@ substitution inside a statement that was already registered.
 The editor's *SQL ins Feld erzeugen* gives that statement its first draft: the
 button writes the generated statement into the SQL box and unticks *generate
 on arrival*. For a record with thirty fields that is the difference between
-"this way out exists" and "this way out gets taken". What comes out is a draft to go on writing, not a finished sentence. For a
-retrieve and a list it stops where the writing starts:
+"this way out exists" and "this way out gets taken". What comes out is a draft
+to go on writing, not a finished sentence: an insert and an update come out
+whole, in the `:Name` form rather than with `?` - a written record statement
+carrying question marks is refused, because nothing could say which field goes
+with which.
 
-```sql
-select ID, Name, City from Customer
-```
-
-The column list and the table come from the record type - the part nobody
-wants to type - and the where clause is the part being written, so it is not
-put there and does not have to be deleted again. Every `?` that ends up in it
-gets a parameter, and then *Testen* runs it.
-
-An insert and an update come out whole, in the `:Name` form rather than with
-`?` - a written record statement carrying question marks is refused, because
-nothing could say which field goes with which. A delete keeps its where
-clause, and that is not an inconsistency: `delete from Customer` as a starting
-point sits one keystroke away from an emptied table.
+A retrieve and a delete are not offered this way: they carry no statement of
+their own (see above), and for a retrieve the box already is its where clause.
 
 From then on the template carries its own statement and no longer follows the
 record type - a field added to the record reaches a generated statement by
 itself and this one not at all. The editor says so when handing it over,
 rather than leaving it to be found out later.
 
-`OrmUpdateCustomerRecord` in this sample is that longer way, next to the three
+`OrmTDtoCustomerUpdateNameCity` in this sample is that longer way, next to the three
 generated keys, so both are visible side by side.
 
 **The types survive.** `TDtoInvoiceRow.InvoiceDate` is a real `TDateTime` and
@@ -1373,13 +1390,13 @@ for the key, fetches that row and opens the dialog on it, so what is edited is
 what is there. The statement it fetches with is not a second rule: it is the
 retrieve branch of the same generator, asked for by name — `RetrieveSqlFor`
 ignores the template's own verb and composes a select over the same record
-type and the same key column. An `OrmUpdateTDtoArtikelRow` is therefore looked
+type and the same key column. An `OrmTDtoArtikelRowUpdate` is therefore looked
 up by `where ArtNr = ?`, exactly the column its update matches on. Left empty,
 the key prompt opens the dialog on defaults; a key that matches nothing stops
 with that as the reason, rather than showing a form that pretends to hold a
 row. An insert is not asked for a key at all.
 
-Measured: `OrmUpdateTDtoCustomer` on `ID` 2 loads
+Measured: `OrmTDtoCustomerUpdate` on `ID` 2 loads
 `{"ID":2,"Name":"Ostwald Holzbearbeitung","City":"Detmold"}`, the edited
 record goes back through the generated update — and afterwards the row in
 `demo.sqlite` is unchanged, because the transaction was rolled back.

@@ -347,7 +347,7 @@ begin
   if result <> sqlOk then
     exit;
   if (rec.RecordType <> '') and
-     (RecordKindFromActionKey(rec.ActionKey) <> raDelete) then
+     (RecordKindOf(rec) <> raDelete) then
   begin
     { this key expects a record, not a value list. It would not prepare
       anyway; saying so beats letting the driver say it.

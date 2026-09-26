@@ -124,7 +124,19 @@ begin
     Msg := 'Kein Action-Key.';
     exit;
   end;
-  kind := RecordKindFromActionKey(Rec.ActionKey);
+  kind := RecordKindOf(Rec);
+  { an Orm key that does not read as Orm<RecordType><Verb> - the server would
+    refuse it with the same sentence }
+  Msg := OrmKeyProblem(Rec);
+  if Msg <> '' then
+    exit;
+  if (kind in [raRetrieve, raDelete]) and
+     (Rec.Sql <> '') then
+  begin
+    Msg := 'Ein Orm-Retrieve oder -Delete trägt kein eigenes Statement, ' +
+      'nur das where. Für Joins und Ähnliches ein Template ohne Orm.';
+    exit;
+  end;
   { what the template says its parameters are }
   if not ParseParamTypes(Rec.ParamTypes, kinds, Msg) then
     exit;
@@ -210,7 +222,7 @@ begin
   if Rec.Sql <> '' then
     result := KindOf(Rec.Sql) = skWrite
   else
-    result := RecordKindFromActionKey(Rec.ActionKey) in
+    result := RecordKindOf(Rec) in
                 [raInsert, raUpdate, raDelete];
 end;
 
@@ -272,7 +284,7 @@ begin
       resolves the type, generates the statement and writes. Nothing of the
       editor's own record path is involved, which is the point of running it
       this way at all }
-    if not (RecordKindFromActionKey(Rec.ActionKey) in [raInsert, raUpdate]) then
+    if not (RecordKindOf(Rec) in [raInsert, raUpdate]) then
     begin
       result.Outcome := swBad;
       result.Message := 'TestBounds ist ein Objekt, aber der Schlüssel ist ' +
