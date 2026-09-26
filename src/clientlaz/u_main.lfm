@@ -52,15 +52,6 @@ object FormMain: TFormMain
       TabOrder = 1
       Text = 'localhost:8890'
     end
-    object ButtonTest: TButton
-      Left = 586
-      Height = 24
-      Top = 1
-      Width = 190
-      Caption = 'Typisierter Test (demo)'
-      TabOrder = 2
-      OnClick = ButtonTestClick
-    end
     object LabelAction: TLabel
       Left = 8
       Height = 16
