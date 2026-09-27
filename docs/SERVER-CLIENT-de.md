@@ -75,9 +75,12 @@ Zwei Feinheiten:
 
 * Ein Template mit **Caller-Scope** bekommt einen Wert **weniger** — die
   Identität bindet der Server.
-* **Typisierter Test (demo)** läuft eine feste Folge typisierter Aufrufe gegen
-  das Profil `demo` und schreibt das Ergebnis ins Log. Er schreibt auch Zeilen,
-  gehört also nur an eine Testdatenbank.
+* Einen Test aller Templates gibt es im Client nicht, und es kann ihn nicht
+  geben: ein Client sieht die Templates nie und wüsste nicht, welche Werte er
+  schicken soll. Das ist **Alle prüfen** im Editor mit Haken bei **über den
+  Server ausführen** — jeder Schlüssel aus der Templates-Datei, jeder mit
+  seinen eigenen *TestBounds*, über den Server mit Anmeldung, Rechten und
+  Regeln. Siehe [EDITOR-de.md](EDITOR-de.md).
 
 ---
 

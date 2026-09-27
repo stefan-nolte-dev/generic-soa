@@ -57,13 +57,16 @@ Looking at the result: tab **Tabelle** (rows), **JSON** (what goes out),
 
 ## Adding a record template (add/update)
 
-The action key decides the kind: `OrmAdd…`, `OrmUpdate…`, `OrmRetrieve…`,
-`OrmList…`, `OrmDelete…`.
+The action key decides the kind. It reads `Orm<Record-Typ><Verb>[Name]`: the
+record type spelled out in full, then `Add`, `Update`, `Retrieve` or `Delete`,
+then a name of your own if one type needs more than one key of that verb —
+`OrmTDtoKundeAdd`, `OrmTDtoKundeRetrieveByCity`. The line under the SQL box
+shows which kind the key reads as, and the statement the server will build.
 
-1. **Neu**, **Action-Key** `OrmAddTDtoKunde`, **Record-Typ** `TDtoKunde`.
+1. **Neu**, **Action-Key** `OrmTDtoKundeAdd`, **Record-Typ** `TDtoKunde`.
 2. Fill in **Record-Felder** unless the type is compiled into the server (one
    field per line, as in Pascal).
-3. Set **Schlüssel** (e.g. `ID`) — update, retrieve and delete need it.
+3. Set **Schlüssel** if the key column is not `ID` — update and delete use it.
 4. Either tick **SQL beim Aufruf erzeugen** (no statement of its own) or press
    **SQL ins Feld erzeugen** and edit the draft.
 5. **Record-Werte eingeben…** opens a form built from the type's fields. After
@@ -83,13 +86,39 @@ About the record dialog:
 
 ---
 
+## Adding a retrieve
+
+A retrieve is a where clause and an order, nothing else: the select around
+them always comes from the record type.
+
+1. **Neu**, **Action-Key** `OrmTDtoKundeRetrieveByCity`, **Record-Typ**
+   `TDtoKunde`. As soon as key and type agree, the label of the big box turns
+   into **where:**.
+2. Write the where clause into the box, without the word `where`:
+   `City = ?`. Empty means every row; one row by its key is `ID = ?`.
+3. **order by** (below) takes the order, e.g. `Name`.
+4. The line under the box shows the statement the server will run.
+5. One **Parameter** per `?`, then **Testen**. The answer is always an array.
+
+**Typen** and **TestBounds** follow the where while you type it: an entry per
+`?`, kept where it was, a missing type as `text`, a missing test value as
+`null`. The line under the box points at a `null` until it is replaced, and
+**Speichern** asks before storing test values that do not fit — *Alle prüfen*
+runs every saved entry with its own values, so they have to be its values.
+
+A select that needs a join or columns the record does not carry is not a
+retrieve: write it as an ordinary query, with a key without `Orm`.
+A delete (`Orm…Delete`) has nothing to write at all — it goes by the key.
+
+---
+
 ## Rules, caller scope, TestBounds
 
 | Field | Example | Effect |
 |---|---|---|
 | **Regeln** | `1:notempty;2:plz;3:email` | checks parameters *before* the statement; available: `notempty`, `plz`, `email`, `len:min:max`, `range:min:max`, `oneof:a:b` |
 | **Caller-Scope** | `userid` | the **last** `?` is bound by the server with the caller's own id; the client sends no value for it |
-| **Filter / Sortierung** | `City = ?` / `Name` | for `OrmList…` only: the `where` and the `order by` |
+| **order by** | `Name` | for `Orm…Retrieve…` only: the order; the `where` stands in the big box |
 | **TestBounds** | `["Wegberg"]` or `{"ID":1,…}` | test values for *Alle prüfen*; an array is a value list, an object is a record |
 
 **JSON als TestBounds** copies whatever stands in *geht als JSON raus* into the

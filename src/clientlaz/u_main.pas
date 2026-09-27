@@ -14,8 +14,7 @@ uses
   mormot.core.base,
   AppSqlServices,
   AppSqlClient,
-  SqlStatus, // TSqlStatus appears in ShowResult below
-  ClientTests;
+  SqlStatus; // TSqlStatus appears in ShowResult below
 
 type
 
@@ -25,7 +24,6 @@ type
     ButtonActions: TButton;
     ButtonLogin: TButton;
     ButtonRun: TButton;
-    ButtonTest: TButton;
     ComboAction: TComboBox;
     ComboProfile: TComboBox;
     EditBounds: TEdit;
@@ -46,7 +44,6 @@ type
     procedure ButtonLoginClick(Sender: TObject);
     procedure ButtonRunClick(Sender: TObject);
     procedure SpeedViewClick(Sender: TObject);
-    procedure ButtonTestClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Splitter1CanOffset(Sender: TObject; var NewOffset: Integer;
       var Accept: Boolean);
@@ -88,7 +85,13 @@ implementation
 {$R *.lfm}
 
 { TFormMain }
-uses u_client_parsing, ClientDtos, WriteDtos, u_jsontable, u_logindialog,
+uses
+  { the typed client library - ParseDynArray, WriteRecord, RetrieveRecord and
+    the records they fill. This window runs keys as JSON and needs none of
+    it, but naming them here keeps them compiled with the demo, so a change
+    that breaks them breaks this build and not a user's }
+  u_client_parsing, ClientDtos,
+  WriteDtos, u_jsontable, u_logindialog,
   SqlProfiles, SqlAuthTypes, mormot.core.variants, Variants;
 
 procedure TFormMain.FormCreate(Sender: TObject);
@@ -388,56 +391,6 @@ begin
   if i >= 0 then
     MemoLog.Lines.Add('Starten mit:  ./soa_sql_templates_server ' +
       string(SQL_PROFILES[i].Name));
-end;
-
-procedure TFormMain.ButtonTestClick(Sender: TObject);
-var
-  arr: TDtoMitarbeiterArray;
-  rec: TDtoArtikel;
-  json: RawUtf8;
-  erg: TSqlStatus;
-  i: integer;
-begin
-  rec.ID := 4;
-  rec.ArtName := 'Sonnenschirm-Wetterfest';
-  rec.ArtNr := 4;
-  rec.Kind := 'Aussenbereich';
-  arr := nil;
-  MemoLog.Clear;
-  Memo1.Clear;
-  Screen.Cursor := crHourGlass;
-  MemoLog.Lines.BeginUpdate;
-  try
-    if not Connect then
-      exit;
-    try
-      { the write direction: one whole record, no statement behind the key }
-    //  erg := WriteRecord('OrmUpdateTDTOArtikel', rec, TypeInfo(TDtoArtikel));
-    //  MemoLog.Lines.Add('OrmUpdateTDTOArtikel -> ' + string(ToText(erg)));
-
-      { the read direction, and what Memo1 shows - a hundred rows, which is
-        what the table view is for. One line to point it at another key }
-      erg := ParseDynArrayJson('GetAlleMitarbeiter', _ArrFast([]),
-        arr, TypeInfo(TDtoMitarbeiterArray), json);
-      MemoLog.Lines.Add('GetAlleMitarbeiter -> ' + string(ToText(erg)) +
-        ', ' + IntToStr(length(arr)) + ' row(s)');
-      ShowResult('GetAlleMitarbeiter', erg, json);
-
-      { and the proof that it is not only text: the same rows, typed, out of
-        a record the server has never heard of }
-      for i := 0 to 2 do
-        if i <= high(arr) then
-          MemoLog.Lines.Add(Format('  arr[%d].Name = %s  .Gehalt = %.2f',
-            [i, string(arr[i].Name), arr[i].Gehalt]));
-    finally
-      DisconnectClient;
-    end;
-  except
-    on E: Exception do
-      MemoLog.Lines.Add('FAILED: ' + E.ClassName + ' - ' + E.Message);
-  end;
-  MemoLog.Lines.EndUpdate;
-  Screen.Cursor := crDefault;
 end;
 
 end.

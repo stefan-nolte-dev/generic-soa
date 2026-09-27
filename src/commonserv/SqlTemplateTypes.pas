@@ -29,7 +29,6 @@ type
     raInsert,
     raUpdate,
     raRetrieve,
-    raList,
     raDelete);
   /// several of them at once, for a caller that accepts more than one
   TRecordActionKinds = set of TRecordActionKind;
@@ -83,15 +82,16 @@ type
     // - a name that already resolves to a compiled type is never overwritten
     // from here; see ResolveRecordType
     RecordDecl: RawUtf8;
-    /// the where clause of a generated list, without the word "where"
+    /// the where clause of a generated retrieve, without the word "where"
     // - e.g. 'City = ? and Name like ?' - the shape of the filter is the
     // template's, the values are the caller's, which is the whole difference
     // to an ORM that takes a where clause from its caller: nothing a client
     // sends is ever read as SQL here
-    // - empty on a list means every row
+    // - empty on a retrieve means every row; one row by its key is
+    // 'ID = ?', written out like any other condition
     // - meaningless for the other kinds: their where clause is the key
     Filter: RawUtf8;
-    /// the order of a generated list, without the words "order by"
+    /// the order of a generated retrieve, without the words "order by"
     // - e.g. 'Name, City' - empty means the database's own order
     OrderBy: RawUtf8;
     /// the key column of a generated statement - empty means ID
@@ -126,26 +126,24 @@ const
   // - UPPERCASE because IdemPChar wants an uppercase pattern; the key itself
   // is matched case insensitively, as everywhere else here
   RECORDACTION_PREFIX = 'ORM';
-  /// what follows the prefix for a generated insert
-  // - the rest of the key is free: the RecordType column names the type, not
-  // the key, so OrmUpdateTDtoCustomer and OrmUpdateKunde both work
-  RECORDACTION_INSERT: array[0..1] of RawUtf8 = (
-    'ADD', 'INSERT');
-  /// and for a generated update
-  RECORDACTION_UPDATE: array[0..0] of RawUtf8 = (
-    'UPDATE');
-  /// and for a generated select on the key
-  // - two spellings for the same reason Add and Insert are both taken
-  RECORDACTION_RETRIEVE: array[0..1] of RawUtf8 = (
-    'RETRIEVE', 'GET');
-  /// and for a generated select of many rows, filtered by the template
-  // - the one kind whose statement is not decided by the key alone: the
-  // Filter and OrderBy columns shape it, and the caller fills its ?
-  RECORDACTION_LIST: array[0..1] of RawUtf8 = (
-    'LIST', 'SELECT');
-  /// and for a generated delete on the key
-  RECORDACTION_DELETE: array[0..0] of RawUtf8 = (
-    'DELETE');
+  /// the verbs, read after the prefix AND the record type: an ORM key is
+  // Orm<RecordType><Verb>[whatever], e.g. OrmTDtoArtikelAdd or
+  // OrmTDtoArtikelRetrieveByName
+  // - the type is spelled out in full, so a key says what travels without
+  // opening the RecordType column, and two types that share a prefix -
+  // TDtoArtikel and TDtoArtikelRow - cannot be mistaken for each other:
+  // the column says where the type ends and the verb begins
+  // - one spelling each. What follows the verb is the author's, the way a
+  // function name is: two retrieves on one type differ there
+  RECORDACTION_INSERT = 'ADD';
+  RECORDACTION_UPDATE = 'UPDATE';
+  /// a select of the record's columns, shaped by the Filter and OrderBy
+  // columns - one row or many is what the where clause says, and the answer
+  // is always an array
+  RECORDACTION_RETRIEVE = 'RETRIEVE';
+  /// a delete on the key, and never anything wider: "delete every row" is
+  // not a statement this key shape can produce
+  RECORDACTION_DELETE = 'DELETE';
 
 /// does this action key claim to be an ORM action at all
 // - the RECORDACTION_PREFIX and nothing else decides it. A template that
@@ -154,10 +152,17 @@ const
 // missing would tell them nothing
 function IsOrmActionKey(const Action: RawUtf8): boolean;
 
-/// raInsert for OrmAddSomething, raUpdate for OrmUpdateSomething,
-// raRetrieve for OrmRetrieve/OrmGetSomething, raDelete for OrmDeleteSomething
-// - raNone when the prefix is missing, so the verb alone never triggers this
-function RecordKindFromActionKey(const Action: RawUtf8): TRecordActionKind;
+/// raInsert for Orm<Type>Add…, raUpdate for Orm<Type>Update…, raRetrieve
+// for Orm<Type>Retrieve…, raDelete for Orm<Type>Delete…
+// - <Type> is the template's RecordType, so both columns have to agree
+// - raNone when the prefix is missing, so the verb alone never triggers this,
+// and raNone when the key does not continue with the record type
+function RecordKindOf(const Rec: TSqlRec): TRecordActionKind;
+
+/// why an ORM key has no kind, in one sentence - '' when it has one
+// - the one place the key shape is explained, so the server's log, the
+// editor's check and its hint next to the key all say the same
+function OrmKeyProblem(const Rec: TSqlRec): RawUtf8;
 
 /// how many bind parameters a statement has: the ? outside string literals
 // - schicht-neutral, a plain text property of a statement, so it lives here
@@ -178,34 +183,61 @@ begin
   result := IdemPChar(pointer(Action), RECORDACTION_PREFIX);
 end;
 
-{ the verb is read AFTER the mark, never instead of it: DeleteCustomer is an
-  ordinary statement with a bound parameter and has to stay one, and
-  OrmDeleteCustomer is the generated delete. That is the whole point of the
-  prefix - the two can sit next to each other and be told apart by name }
-function RecordKindFromActionKey(const Action: RawUtf8): TRecordActionKind;
+{ what follows Orm<RecordType>, or '' when the key does not go on with the
+  type - compared case insensitively, as the key is everywhere else }
+function VerbPart(const Rec: TSqlRec): RawUtf8;
+var
+  head: RawUtf8;
+begin
+  result := '';
+  if not IsOrmActionKey(Rec.ActionKey) or
+     (Rec.RecordType = '') then
+    exit;
+  head := copy(Rec.ActionKey, length(RECORDACTION_PREFIX) + 1,
+    length(Rec.RecordType));
+  if IdemPropNameU(head, Rec.RecordType) then
+    result := copy(Rec.ActionKey,
+      length(RECORDACTION_PREFIX) + length(Rec.RecordType) + 1, MaxInt);
+end;
+
+{ the verb is read AFTER the mark and the type, never instead of them:
+  DeleteCustomer is an ordinary statement with a bound parameter and has to
+  stay one, and OrmTDtoCustomerDelete is the generated delete. That is the
+  whole point of the prefix - the two can sit next to each other and be told
+  apart by name }
+function RecordKindOf(const Rec: TSqlRec): TRecordActionKind;
 var
   verb: RawUtf8;
-  i: PtrInt;
 begin
   result := raNone;
-  if not IsOrmActionKey(Action) then
+  verb := VerbPart(Rec);
+  if verb = '' then
     exit;
-  verb := copy(Action, length(RECORDACTION_PREFIX) + 1, MaxInt);
-  for i := 0 to high(RECORDACTION_INSERT) do
-    if IdemPChar(pointer(verb), pointer(RECORDACTION_INSERT[i])) then
-      exit(raInsert);
-  for i := 0 to high(RECORDACTION_UPDATE) do
-    if IdemPChar(pointer(verb), pointer(RECORDACTION_UPDATE[i])) then
-      exit(raUpdate);
-  for i := 0 to high(RECORDACTION_RETRIEVE) do
-    if IdemPChar(pointer(verb), pointer(RECORDACTION_RETRIEVE[i])) then
-      exit(raRetrieve);
-  for i := 0 to high(RECORDACTION_LIST) do
-    if IdemPChar(pointer(verb), pointer(RECORDACTION_LIST[i])) then
-      exit(raList);
-  for i := 0 to high(RECORDACTION_DELETE) do
-    if IdemPChar(pointer(verb), pointer(RECORDACTION_DELETE[i])) then
-      exit(raDelete);
+  if IdemPChar(pointer(verb), RECORDACTION_INSERT) then
+    result := raInsert
+  else if IdemPChar(pointer(verb), RECORDACTION_UPDATE) then
+    result := raUpdate
+  else if IdemPChar(pointer(verb), RECORDACTION_RETRIEVE) then
+    result := raRetrieve
+  else if IdemPChar(pointer(verb), RECORDACTION_DELETE) then
+    result := raDelete;
+end;
+
+function OrmKeyProblem(const Rec: TSqlRec): RawUtf8;
+begin
+  result := '';
+  if not IsOrmActionKey(Rec.ActionKey) then
+    exit;
+  if Rec.RecordType = '' then
+    result := FormatUtf8('% starts with Orm but names no record type',
+      [Rec.ActionKey])
+  else if VerbPart(Rec) = '' then
+    result := FormatUtf8('% has to start with Orm%, the record type in ' +
+      'full, followed by Add, Update, Retrieve or Delete',
+      [Rec.ActionKey, Rec.RecordType])
+  else if RecordKindOf(Rec) = raNone then
+    result := FormatUtf8('% names no verb after Orm%: Add, Update, ' +
+      'Retrieve or Delete', [Rec.ActionKey, Rec.RecordType]);
 end;
 
 function ExpectedParamCount(const Rec: TSqlRec): integer;
@@ -213,13 +245,12 @@ begin
   if Rec.Sql <> '' then
     result := CountSqlParams(Rec.Sql)
   else
-    { no statement yet, so the same three things that will make it say how
-      many ? it will have: a list gets one per ? of its filter, a retrieve
-      and a delete get the one that is the key, and nothing else generates }
-    case RecordKindFromActionKey(Rec.ActionKey) of
-      raList:
+    { no statement yet, so the same things that will make it say how many ?
+      it will have: a retrieve gets one per ? of its where clause, a delete
+      the one that is the key, and nothing else generates }
+    case RecordKindOf(Rec) of
+      raRetrieve:
         result := CountSqlParams(Rec.Filter);
-      raRetrieve,
       raDelete:
         result := 1;
     else

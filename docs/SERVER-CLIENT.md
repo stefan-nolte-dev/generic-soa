@@ -76,9 +76,11 @@ Two details:
 
 * A template with a **caller scope** takes one value **less** — the server
   binds the identity.
-* **Typisierter Test (demo)** runs a fixed sequence of typed calls against the
-  `demo` profile and writes the outcome to the log. It writes rows too, so it
-  belongs on a test database only.
+* A test of every template is not in the client, and cannot be: a client
+  never sees the templates, so it would not know which values to send. It is
+  **Alle prüfen** in the editor with **über den Server ausführen** ticked —
+  every key from the templates file, each with its own *TestBounds*, through
+  the server with login, rights and rules. See [EDITOR.md](EDITOR.md).
 
 ---
 

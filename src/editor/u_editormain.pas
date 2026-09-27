@@ -61,6 +61,16 @@ type
     stHint,
     stBad);
 
+  /// what the big box of the window holds
+  // - sbSql: a statement, written or - with the box ticked - generated
+  // - sbWhere: the where clause of an Orm retrieve, and nothing else: the
+  // select around it is always the record type's
+  // - sbKeyOnly: an Orm delete, which has nothing to write at all
+  TSqlBoxMode = (
+    sbSql,
+    sbWhere,
+    sbKeyOnly);
+
   { TFormEditor }
 
   TFormEditor = class(TForm)
@@ -94,7 +104,6 @@ type
     ComboProfile: TComboBox;
     EditBoundValue: TEdit;
     EditBoundsJson: TEdit;
-    EditFilter: TEdit;
     EditRules: TEdit;
     EditTestBounds: TEdit;
     EditKey: TEdit;
@@ -119,7 +128,6 @@ type
     LabelEngine: TLabel;
     LabelKey: TLabel;
     EditOrderBy: TEdit;
-    LabelFilter: TLabel;
     LabelRules: TLabel;
     LabelTestBounds: TLabel;
     LabelKeyField: TLabel;
@@ -136,6 +144,7 @@ type
     LabelServer: TLabel;
     LabelStatus: TLabel;
     LabelSql: TLabel;
+    LabelSqlPreview: TLabel;
     EditKeyFilter: TEdit;
     LabelKeyFilter: TLabel;
     LabelTarget: TLabel;
@@ -192,6 +201,9 @@ type
     procedure CheckGenerateSqlChange(Sender: TObject);
     procedure ComboBoundKindChange(Sender: TObject);
     procedure EditKeyFilterChange(Sender: TObject);
+    procedure EditKeyChange(Sender: TObject);
+    procedure SqlPartChange(Sender: TObject);
+    procedure MemoSqlChange(Sender: TObject);
     procedure ListKeysSelectionChange(Sender: TObject; User: boolean);
     procedure MemoBoundsChange(Sender: TObject);
   private
@@ -208,6 +220,22 @@ type
     fListLoaded: boolean;
     /// the two boxes set each other, and neither may answer the other's move
     fSyncingBoxes: boolean;
+    /// what the big box holds right now - see SqlModeNow
+    fSqlMode: TSqlBoxMode;
+    /// what the big box would hold for the key and type as they stand
+    function SqlModeNow: TSqlBoxMode;
+    /// label, checkbox and buttons to the mode the key and type ask for
+    procedure ApplySqlMode;
+    /// the line under the box: which kind the key reads as, and the
+    // statement the server would build from it
+    procedure RefreshSqlPreview;
+    /// Typen to as many entries as the where clause has ?
+    procedure SyncTypesToWhere;
+    /// TestBounds to as many values as the where clause has ?
+    procedure SyncTestBoundsToWhere;
+    /// what is wrong between TestBounds and the ? it has to fill - '' if
+    // nothing is, or if there is no value list to compare
+    function TestBoundsProblem(const Rec: TSqlRec): RawUtf8;
     procedure Log(const Msg: RawUtf8); // not 'Text': TControl.Text is in scope
     /// the one line that is always visible, whichever tab is in front
     procedure Say(const Msg: RawUtf8; Level: TStatusLevel);
@@ -581,7 +609,8 @@ begin
   result.ActionKey := Trim(RawUtf8(EditKey.Text));
   { with the statement generated there is nothing to store in the Sql column,
     and storing what is greyed out would be worse than storing nothing }
-  if CheckGenerateSql.Checked then
+  if CheckGenerateSql.Checked or
+     (SqlModeNow <> sbSql) then
     result.Sql := ''
   else
     result.Sql := Trim(RawUtf8(MemoSql.Lines.Text));
@@ -595,13 +624,17 @@ begin
     Trim(RawUtf8(MemoRecordDecl.Lines.Text)), #10, ' '));
   result.KeyField := Trim(RawUtf8(EditKeyField.Text));
   result.CallerScope := Trim(RawUtf8(EditCallerScope.Text));
-  { the where clause of a generated list, and its order - the shape of the
-    filter belongs to the template, which is the point of it being here and
-    not in anything a caller sends }
   result.Rules := Trim(RawUtf8(EditRules.Text));
   result.TestBounds := Trim(RawUtf8(EditTestBounds.Text));
-  result.Filter := Trim(RawUtf8(EditFilter.Text));
-  result.OrderBy := Trim(RawUtf8(EditOrderBy.Text));
+  { the where clause of a generated retrieve, and its order - the shape of
+    the filter belongs to the template, which is the point of it being here
+    and not in anything a caller sends. Only a retrieve has one: the big box
+    holds it, and for every other kind it holds something else }
+  if SqlModeNow = sbWhere then
+  begin
+    result.Filter := Trim(RawUtf8(MemoSql.Lines.Text));
+    result.OrderBy := Trim(RawUtf8(EditOrderBy.Text));
+  end;
   result.ReadGroups := GetInt64(pointer(RawUtf8(Trim(EditReadGroups.Text))));
   result.WriteGroups := GetInt64(pointer(RawUtf8(Trim(EditWriteGroups.Text))));
 end;
@@ -685,7 +718,10 @@ begin
   result := ParseParamTypes(decl, kinds, Msg);
   if not result then
     exit;
-  wanted := ParamCount(RawUtf8(Trim(MemoSql.Lines.Text)));
+  { counted the way the server counts: the ? of a written statement, the ?
+    of a retrieve's where clause, the one key of a delete - and none for a
+    statement that is generated from a record's fields }
+  wanted := ExpectedParamCount(CurrentRec);
   if decl = '' then
   begin
     { allowed on purpose: a template that declares nothing is handed on
@@ -701,8 +737,13 @@ begin
   end;
   if length(kinds) <> wanted then
   begin
-    Msg := FormatUtf8('The declaration has % entries, the statement % ' +
-      'parameter(s).', [length(kinds), wanted]);
+    if SqlModeNow = sbWhere then
+      Msg := FormatUtf8('Typen nennt % Eintrag/Einträge, das where hat % ?. ' +
+        'Typen anpassen - oder leeren, wenn das where keine ? hat.',
+        [length(kinds), wanted])
+    else
+      Msg := FormatUtf8('The declaration has % entries, the statement % ' +
+        'parameter(s).', [length(kinds), wanted]);
     exit(false);
   end;
   Msg := FormatUtf8('Declared: %.', [ParamTypesToText(kinds)]);
@@ -740,6 +781,20 @@ var
   decl, msg: RawUtf8;
 begin
   RefreshBoundsJson;
+  if fSqlMode = sbWhere then
+  begin
+    { a retrieve's declaration follows its where clause, not this list: a
+      value too many is a mistake in the list, and must not leave a type
+      behind that outlives the value. Only a list that fits the ? says
+      something the declaration can use - the kind each value was entered
+      as, which beats the text SyncTypesToWhere puts in by default }
+    if TextToBounds(RawUtf8(MemoBounds.Lines.Text), bounds, msg) and
+       (length(bounds) = CountSqlParams(Trim(RawUtf8(MemoSql.Lines.Text)))) and
+       (length(bounds) > 0) and
+       BoundsToParamTypes(bounds, decl, msg) then
+      EditParamTypes.Text := U(decl);
+    exit;
+  end;
   { fill the declaration from the parameters, but only while it is empty: the
     kind was already chosen when the value was entered, and asking for it a
     second time is how the two come to disagree. Overwriting something typed
@@ -927,23 +982,45 @@ begin
   if (i < 0) or
      (i > high(fRecs)) then
     exit;
+  { key and type first: together they say what the big box holds }
   EditKey.Text := U(fRecs[i].ActionKey);
-  MemoSql.Lines.Text := SafeText(fRecs[i].Sql);
+  EditRecordType.Text := U(fRecs[i].RecordType);
+  EditOrderBy.Text := U(fRecs[i].OrderBy);
+  case SqlModeNow of
+    sbWhere:
+      MemoSql.Lines.Text := SafeText(fRecs[i].Filter);
+    sbKeyOnly:
+      MemoSql.Lines.Clear;
+  else
+    MemoSql.Lines.Text := SafeText(fRecs[i].Sql);
+  end;
   CheckGenerateSql.Checked := (fRecs[i].Sql = '') and
                               (fRecs[i].RecordType <> '');
-  CheckGenerateSqlChange(nil);
+  ApplySqlMode;
+  if (SqlModeNow <> sbSql) and
+     (fRecs[i].Sql <> '') then
+  begin
+    { a row from before the retrieve lost its statement: shown, so its where
+      clause can be copied over, and not kept - saving drops it }
+    Log(FormatUtf8('% trägt noch ein eigenes Statement, das nicht mehr ' +
+      'gilt:'#13#10'  %'#13#10'Das where davon gehört ins Feld oben, ' +
+      'Speichern verwirft das Statement.', [fRecs[i].ActionKey,
+      fRecs[i].Sql]));
+    Say('Altes Statement im Log - das where ins Feld übernehmen.', stHint);
+  end;
   EditParamTypes.Text := U(fRecs[i].ParamTypes);
-  EditRecordType.Text := U(fRecs[i].RecordType);
   MemoRecordDecl.Lines.Text := SafeText(fRecs[i].RecordDecl);
   EditKeyField.Text := U(fRecs[i].KeyField);
   EditCallerScope.Text := U(fRecs[i].CallerScope);
   EditRules.Text := U(fRecs[i].Rules);
   EditTestBounds.Text := U(fRecs[i].TestBounds);
-  EditFilter.Text := U(fRecs[i].Filter);
-  EditOrderBy.Text := U(fRecs[i].OrderBy);
   EditReadGroups.Text := IntToStr(fRecs[i].ReadGroups);
   EditWriteGroups.Text := IntToStr(fRecs[i].WriteGroups);
-  EditTypeName.Text := U(SuggestTypeName(fRecs[i].ActionKey));
+  if fRecs[i].RecordType <> '' then
+    EditTypeName.Text := U(fRecs[i].RecordType)
+  else
+    EditTypeName.Text := U(SuggestTypeName(fRecs[i].ActionKey));
+  RefreshSqlPreview;
 end;
 
 procedure TFormEditor.ButtonNewClick(Sender: TObject);
@@ -960,13 +1037,14 @@ begin
   EditCallerScope.Text := '';
   EditRules.Text := '';
   EditTestBounds.Text := '';
-  EditFilter.Text := '';
   EditOrderBy.Text := '';
   EditReadGroups.Text := '0';
   EditWriteGroups.Text := '0';
   MemoBounds.Lines.Clear;
   EditTypeName.Text := '';
   MemoDto.Clear;
+  ApplySqlMode;
+  RefreshSqlPreview;
   EditKey.SetFocus;
 end;
 
@@ -1011,8 +1089,27 @@ begin
     Say('The parameter list cannot be read - see the messages.', stBad);
     exit;
   end;
-  { first the statement on its own: the rules that need no database }
-  Step(StaticCheck(RawUtf8(Trim(MemoSql.Lines.Text)), length(bounds), msg), msg);
+  { first the statement on its own: the rules that need no database. A
+    generated one has no text yet - what can be checked of it is whether the
+    values below match the ? it will have, and CheckRecordType prints it }
+  rec := CurrentRec;
+  if (rec.Sql = '') and
+     (rec.RecordType <> '') then
+  begin
+    if RecordKindOf(rec) in [raRetrieve, raDelete] then
+      if length(bounds) = ExpectedParamCount(rec) then
+        Step(true, FormatUtf8('% Parameter, % erwartet.',
+          [length(bounds), ExpectedParamCount(rec)]))
+      else if RecordKindOf(rec) = raRetrieve then
+        Step(false, FormatUtf8('Das where hat % ?, in der Parameterliste ' +
+          'stehen % Werte.', [ExpectedParamCount(rec), length(bounds)]))
+      else
+        Step(false, FormatUtf8('Ein Delete nimmt genau einen Wert, den ' +
+          'Schlüssel - in der Parameterliste stehen %.', [length(bounds)]));
+  end
+  else
+    Step(StaticCheck(RawUtf8(Trim(MemoSql.Lines.Text)), length(bounds), msg),
+      msg);
   { then the declaration: it has to parse, and it has to have one entry per ? }
   Step(CheckDeclaration(msg), msg);
   { then the record side, with the server's own code: the type has to resolve
@@ -1210,7 +1307,7 @@ begin
     exit(true);
   end;
   if (Rec.RecordType <> '') and
-     (RecordKindFromActionKey(Rec.ActionKey) in [raInsert, raUpdate]) then
+     (RecordKindOf(Rec) in [raInsert, raUpdate]) then
   begin
     Msg := 'Regeln nennen Parameterpositionen, ein Record-Schreibvorgang ' +
            'hat keine. Der Server lehnt eine solche Vorlage ab.';
@@ -1329,21 +1426,18 @@ begin
   CheckGenerateSql.Checked := false;
   CheckGenerateSqlChange(nil);
   Log(FormatUtf8('Erzeugt und übernommen: %', [sql]));
-  case RecordKindFromActionKey(rec.ActionKey) of
+  case RecordKindOf(rec) of
     raInsert,
     raUpdate:
       Log('Die :Namen sind die Felder des Records - der Server füllt sie ' +
           'beim Aufruf. Ein geschriebenes Record-Statement mit ? wird ' +
           'abgelehnt, deshalb stehen sie hier und keine Fragezeichen.');
-    raRetrieve,
-    raList:
-      Log('Spaltenliste und Tabelle kommen aus dem Record-Typ, das where ' +
-          'schreibst du: Bedingung mit ? anhängen, für jedes ? einen ' +
-          'Parameter anlegen, dann Testen.');
     raDelete:
       Log('Das where steht schon da - ein Delete ohne where ist einen ' +
           'Tastendruck von einer leeren Tabelle entfernt. Das ? ist der ' +
           'Schlüssel und kommt beim Testen aus der Parameterliste.');
+  else
+    ; // a retrieve never gets here: EditableSqlFor refused it above
   end;
   Say('Das Template trägt jetzt ein eigenes Statement und folgt dem ' +
     'Record-Typ nicht mehr. Speichern nicht vergessen.', stOk);
@@ -1414,7 +1508,7 @@ begin
   end;
   rec := CurrentRec;
   if (rec.RecordType <> '') and
-     (RecordKindFromActionKey(rec.ActionKey) in [raInsert, raUpdate]) then
+     (RecordKindOf(rec) in [raInsert, raUpdate]) then
   begin
     { An insert or an update of a record takes its values from the record and
       never from the list below the statement: the generated statement carries
@@ -1448,6 +1542,23 @@ begin
   { the rules come before the statement here as they do in the domain layer,
     so a value this template refuses is refused in the same place }
   if not RulesHold(rec, bounds, ruleMsg) then
+  begin
+    PagesResult.ActivePage := TabLog;
+    Log(ruleMsg);
+    Say(ruleMsg, stBad);
+    exit;
+  end;
+  { the declaration against the ? the statement will have, before anything
+    runs: the server refuses a mismatch too, but in words about a template
+    rather than about the field that is wrong in this window. For a retrieve
+    it is not asked but brought in line - there the declaration has no other
+    job than following the where clause }
+  if fSqlMode = sbWhere then
+  begin
+    SyncTypesToWhere;
+    rec := CurrentRec;
+  end;
+  if not CheckDeclaration(ruleMsg) then
   begin
     PagesResult.ActivePage := TabLog;
     Log(ruleMsg);
@@ -1537,12 +1648,234 @@ begin
         'heißt, dass die Spalte leer bleibt und beim Aufruf erzeugt wird.',
         stHint);
     Log(RawUtf8('Das SQL wird beim Aufruf aus Action-Key und Record-Typ ' +
-      'erzeugt: Add.../Insert... oder Update..., Tabelle aus dem Typnamen ' +
-      'ohne TDto und Row, Schlüsselspalte aus dem Feld "Schlüssel" - leer ' +
-      'heißt ID.'));
+      'erzeugt: Orm<Record-Typ>Add oder Orm<Record-Typ>Update, Tabelle aus ' +
+      'dem Typnamen ohne TDto und Row, Schlüsselspalte aus dem Feld ' +
+      '"Schlüssel" - leer heißt ID.'));
   end
   else
     MemoSql.Color := clDefault;
+  RefreshSqlPreview;
+end;
+
+{ An Orm retrieve is a where clause and an order, and nothing else is the
+  template's to write: the select around them is the record type's, always.
+  So for one of those the big box IS the where clause - the place the eye
+  goes to for "what does this key do" shows the one part that differs from
+  key to key. A delete has not even that: it goes by the key.
+  Read off the key and the type as they stand in the window, not as they
+  were loaded, so typing a key changes the box with it. }
+function TFormEditor.SqlModeNow: TSqlBoxMode;
+var
+  rec: TSqlRec;
+begin
+  rec := default(TSqlRec);
+  rec.ActionKey := Trim(RawUtf8(EditKey.Text));
+  rec.RecordType := Trim(RawUtf8(EditRecordType.Text));
+  case RecordKindOf(rec) of
+    raRetrieve:
+      result := sbWhere;
+    raDelete:
+      result := sbKeyOnly;
+  else
+    result := sbSql;
+  end;
+end;
+
+procedure TFormEditor.ApplySqlMode;
+var
+  mode: TSqlBoxMode;
+begin
+  mode := SqlModeNow;
+  if (mode <> sbSql) and
+     (fSqlMode = sbSql) then
+    { leaving a statement for a generated kind: nothing to write any more
+      but the where, and a statement left standing would read as one }
+    if mode = sbKeyOnly then
+      MemoSql.Lines.Clear;
+  fSqlMode := mode;
+  case mode of
+    sbWhere:
+      LabelSql.Caption := 'where:';
+  else
+    LabelSql.Caption := 'SQL:';
+  end;
+  { for these two generating is not a choice, so the box is not offered }
+  CheckGenerateSql.Enabled := mode = sbSql;
+  ButtonSqlFromRecord.Enabled := mode = sbSql;
+  EditOrderBy.Enabled := mode = sbWhere;
+  LabelOrderBy.Enabled := mode = sbWhere;
+  if mode = sbSql then
+    CheckGenerateSqlChange(nil)
+  else
+  begin
+    MemoSql.Enabled := mode = sbWhere;
+    if mode = sbWhere then
+      MemoSql.Color := clDefault
+    else
+      MemoSql.Color := clBtnFace;
+  end;
+end;
+
+procedure TFormEditor.RefreshSqlPreview;
+const
+  KIND_TEXT: array[TRecordActionKind] of RawUtf8 = (
+    '', 'Add', 'Update', 'Retrieve', 'Delete');
+var
+  rec: TSqlRec;
+  sql, msg, why: RawUtf8;
+  kind: TRecordActionKind;
+begin
+  rec := CurrentRec;
+  kind := RecordKindOf(rec);
+  msg := OrmKeyProblem(rec);
+  if msg <> '' then
+    LabelSqlPreview.Caption := U(msg)
+  else if kind = raNone then
+    LabelSqlPreview.Caption := ''
+  else if rec.Sql <> '' then
+    LabelSqlPreview.Caption := U(FormatUtf8('Orm %: eigenes Statement',
+      [KIND_TEXT[kind]]))
+  else
+  begin
+    { the server's own generator, so what is shown is what will run - and
+      a type that does not resolve says so here, as it would there }
+    try
+      if GeneratedSqlFor(rec, sql, msg) = rbOk then
+        msg := FormatUtf8('Orm % → %', [KIND_TEXT[kind], sql])
+      else
+        msg := FormatUtf8('Orm %: %', [KIND_TEXT[kind], msg]);
+    except
+      on E: Exception do
+        msg := FormatUtf8('Orm %: %', [KIND_TEXT[kind], E.Message]);
+    end;
+    { the one mismatch that is easy to carry over from a copied template:
+      the where changed, the declaration did not }
+    if (kind = raRetrieve) and
+       not CheckDeclaration(why) then
+      msg := msg + RawUtf8('   ⚠ ') + why
+    else
+    begin
+      why := TestBoundsProblem(rec);
+      if why <> '' then
+        msg := msg + RawUtf8('   ⚠ ') + why;
+    end;
+    LabelSqlPreview.Caption := U(msg);
+  end;
+end;
+
+procedure TFormEditor.EditKeyChange(Sender: TObject);
+begin
+  if SqlModeNow <> fSqlMode then
+    ApplySqlMode;
+  RefreshSqlPreview;
+end;
+
+procedure TFormEditor.SqlPartChange(Sender: TObject);
+begin
+  RefreshSqlPreview;
+end;
+
+procedure TFormEditor.MemoSqlChange(Sender: TObject);
+begin
+  { only what is typed: a template loaded from the list keeps its row as it
+    is, and whatever is wrong with it is for the check to say }
+  if MemoSql.Focused and
+     (fSqlMode = sbWhere) then
+  begin
+    SyncTypesToWhere;
+    SyncTestBoundsToWhere;
+  end;
+  RefreshSqlPreview;
+end;
+
+{ For an Orm retrieve the declaration has exactly one job - one type per ? of
+  the where clause - so it follows the where instead of waiting to be found
+  out of step by the server. Entries that are there are kept, in order: a
+  date stays a date. What is missing becomes text, the kind a ? most often
+  is, and the one to change by hand when it is not. }
+procedure TFormEditor.SyncTypesToWhere;
+var
+  want, i: integer;
+  have: TRawUtf8DynArray;
+  decl, was: RawUtf8;
+begin
+  want := CountSqlParams(Trim(RawUtf8(MemoSql.Lines.Text)));
+  decl := Trim(RawUtf8(EditParamTypes.Text));
+  have := nil;
+  if decl <> '' then
+    CsvToRawUtf8DynArray(pointer(decl), have);
+  if length(have) = want then
+    exit;
+  SetLength(have, want);
+  for i := 0 to want - 1 do
+  begin
+    have[i] := TrimU(have[i]);
+    if have[i] = '' then
+      have[i] := 'text';
+  end;
+  was := decl;
+  EditParamTypes.Text := U(RawUtf8ArrayToCsv(have, ','));
+  Log(FormatUtf8('Typen dem where angepasst: "%" -> "%" (% ?).',
+    [was, RawUtf8ArrayToCsv(have, ','), want]));
+end;
+
+{ The same for the values "Alle prüfen" runs this key with: a sweep over the
+  saved set is only a test of each entry if each entry's values fit it. Kept
+  values stay where they are; a ? that has none gets null - a placeholder
+  that runs, and that the line under the box points at until it is replaced.
+  An empty column is left empty: that is "checked, not run", a decision and
+  not a mismatch. }
+procedure TFormEditor.SyncTestBoundsToWhere;
+var
+  want, i: integer;
+  doc: TDocVariantData;
+  bounds, was: RawUtf8;
+  v: variant;
+begin
+  bounds := Trim(RawUtf8(EditTestBounds.Text));
+  if bounds = '' then
+    exit;
+  v := _Json(bounds, JSON_FAST_FLOAT);
+  if not _Safe(v)^.IsArray then
+    exit; // an object is a record, and a broken text is for the check to say
+  want := CountSqlParams(Trim(RawUtf8(MemoSql.Lines.Text)));
+  if _Safe(v)^.Count = want then
+    exit;
+  doc.InitArray([], JSON_FAST_FLOAT);
+  for i := 0 to want - 1 do
+    if i < _Safe(v)^.Count then
+      doc.AddItem(_Safe(v)^.Values[i])
+    else
+      doc.AddItem(Null);
+  was := bounds;
+  EditTestBounds.Text := U(doc.ToJson);
+  Log(FormatUtf8('TestBounds dem where angepasst: % -> %', [was, doc.ToJson]));
+end;
+
+function TFormEditor.TestBoundsProblem(const Rec: TSqlRec): RawUtf8;
+var
+  v: variant;
+  want, i: integer;
+begin
+  result := '';
+  if (Rec.TestBounds = '') or
+     ((Rec.RecordType <> '') and
+      (RecordKindOf(Rec) in [raInsert, raUpdate])) then
+    exit; // nothing to run, or a record that is not a value list
+  v := _Json(Rec.TestBounds, JSON_FAST_FLOAT);
+  if not _Safe(v)^.IsArray then
+    exit(RawUtf8('TestBounds ist kein JSON-Array.'));
+  { a scoped template leaves its last ? to the server, as the sweep does }
+  want := ExpectedParamCount(Rec);
+  if Rec.CallerScope <> '' then
+    dec(want);
+  if _Safe(v)^.Count <> want then
+    exit(FormatUtf8('TestBounds hat % Wert(e), erwartet werden %.',
+      [_Safe(v)^.Count, want]));
+  for i := 0 to _Safe(v)^.Count - 1 do
+    if VarIsNull(_Safe(v)^.Values[i]) then
+      exit(FormatUtf8('TestBounds: an Stelle % steht null - einen echten ' +
+        'Wert eintragen.', [i + 1]));
 end;
 
 procedure TFormEditor.FillGrid(const Json: RawUtf8);
@@ -1610,6 +1943,19 @@ var
   msg: RawUtf8;
 begin
   PagesResult.ActivePage := TabLog;
+  { the values "Alle prüfen" will run this entry with: saved out of step,
+    the sweep tests something the entry no longer is. Asked, not refused -
+    a half-written entry may be worth keeping }
+  msg := TestBoundsProblem(CurrentRec);
+  if msg <> '' then
+    if MessageDlg('Speichern',
+         U(msg + RawUtf8(#13#10'"Alle prüfen" würde diesen Eintrag damit ' +
+         'falsch aufrufen. Trotzdem speichern?')), mtWarning, [mbYes, mbNo], 0)
+         <> mrYes then
+    begin
+      Say(msg, stBad);
+      exit;
+    end;
   fStore.FileName := TemplateFile;
   if fStore.Save(CurrentRec, msg) then
   begin
@@ -1716,12 +2062,13 @@ begin
       'Record.', stBad);
     exit;
   end;
-  if not (RecordKindFromActionKey(rec.ActionKey) in [raInsert, raUpdate]) then
+  if not (RecordKindOf(rec) in [raInsert, raUpdate]) then
   begin
-    { a retrieve and a delete send the key and nothing else - the values
-      below the statement are the ordinary test values, not a record }
-    Say(FormatUtf8('% nimmt keinen Record: Add/Insert und Update tun das, ' +
-      'Retrieve und Delete bekommen nur den Schlüssel als Testwert.',
+    { a retrieve sends the values of its where clause, a delete the key -
+      the values below the statement are the ordinary test values, not a
+      record }
+    Say(FormatUtf8('% nimmt keinen Record: Add und Update tun das. ' +
+      'Retrieve bekommt die Werte seines where, Delete den Schlüssel.',
       [rec.ActionKey]), stBad);
     exit;
   end;
@@ -1733,7 +2080,7 @@ begin
   end;
   SetVariantNull(row);
   remembered := fLastRecordJson.U[rec.ActionKey];
-  if RecordKindFromActionKey(rec.ActionKey) = raUpdate then
+  if RecordKindOf(rec) = raUpdate then
   begin
     { An update is about a row that is already there, so the honest starting
       point is that row and not an empty form. The key is asked for rather
@@ -1854,7 +2201,7 @@ begin
     exit;
   end;
   if (Rec.RecordType <> '') and
-     (RecordKindFromActionKey(Rec.ActionKey) in [raInsert, raUpdate]) then
+     (RecordKindOf(Rec) in [raInsert, raUpdate]) then
   begin
     { a record write has no parameter list to send - it goes through
       RunRecordThroughServer, which "Testen" picks for this kind of key
@@ -1866,7 +2213,7 @@ begin
   if Rec.Sql <> '' then
     write := KindOf(Rec.Sql) = skWrite
   else
-    write := RecordKindFromActionKey(Rec.ActionKey) = raDelete;
+    write := RecordKindOf(Rec) = raDelete;
   if write then
     { the one promise this tool makes, and the one place it cannot keep it }
     if MessageDlg('Über den Server ausführen',

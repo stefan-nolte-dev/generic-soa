@@ -157,11 +157,12 @@ end;
 { The two directions a record type can be used WITHOUT a record.
 
   A retrieve and a delete carry no statement, and unlike an insert or an
-  update they carry no values from a record either: their one value is the
-  key, and it arrives the way every other bound value does. So the only thing
-  the record type contributes is the statement - the column list for a select,
-  the table name for a delete - and once that exists, everything below this
-  runs on an ordinary resolved template with a ? in it.
+  update they carry no values from a record either: their values are the ?
+  of the retrieve's where clause, or the delete's one key, and they arrive
+  the way every other bound value does. So the only thing the record type
+  contributes is the statement - the column list for a select, the table name
+  for a delete - and once that exists, everything below this runs on an
+  ordinary resolved template with its ? in it.
 
   Which is why neither the domain layer nor the service contract learned a
   new call for these two: GetJsonFromAction and WriteDataForAction already
@@ -172,10 +173,22 @@ var
   sql, msg: RawUtf8;
 begin
   result := sqlOk;
-  if (Rec.Sql <> '') or
-     (Rec.RecordType = '') or
-     not (RecordKindFromActionKey(Rec.ActionKey) in Wanted) then
+  if (Rec.RecordType = '') or
+     not (RecordKindOf(Rec) in Wanted) then
     exit; // not one of these: leave the template exactly as it was
+  if Rec.Sql <> '' then
+  begin
+    { a retrieve or a delete is made from the record type and nothing else:
+      a statement of its own would be a second way to say the same thing,
+      and the one that quietly stops following the type. Joins and the like
+      are an ordinary template, without the Orm mark }
+    msg := FormatUtf8('% is generated from % and carries no statement of ' +
+      'its own - write the where clause, or use a key without Orm',
+      [Rec.ActionKey, Rec.RecordType]);
+    SynDBLog.Add.Log(sllError, '%(%): %', [Called, Rec.ActionKey, msg]);
+    SetLastError('%', [msg]);
+    exit(sqlFailed);
+  end;
   if GeneratedSqlFor(Rec, sql, msg) <> rbOk then
   begin
     { a record type nobody registered, or a declaration that does not parse:
@@ -198,9 +211,9 @@ begin
   Json := '[]';
   LastError := ''; // whatever went wrong last time is not this call's reason
   one := Rec;
-  { the two kinds that read: one row by its key, or many by the filter the
-    template carries - both are a select, and both are generated here }
-  result := GenerateIfOrm(one, [raRetrieve, raList], 'SelectJson');
+  { the kind that reads: the rows the template's where clause selects, one
+    or many or all of them - always a select, and generated here }
+  result := GenerateIfOrm(one, [raRetrieve], 'SelectJson');
   if result <> sqlOk then
     exit;
   result := Coerce(one, Bounds, bound);

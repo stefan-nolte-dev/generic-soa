@@ -55,13 +55,18 @@ Ergebnis ansehen: Reiter **Tabelle** (Zeilen), **JSON** (was rausgeht),
 
 ## Ein Record-Template anlegen (Add/Update)
 
-Der Action-Key entscheidet über die Art: `OrmAdd…`, `OrmUpdate…`,
-`OrmRetrieve…`, `OrmList…`, `OrmDelete…`.
+Der Action-Key entscheidet über die Art. Er lautet
+`Orm<Record-Typ><Verb>[Name]`: der Record-Typ voll ausgeschrieben, dann `Add`,
+`Update`, `Retrieve` oder `Delete`, dahinter ein eigener Name, wenn ein Typ
+mehr als einen Schlüssel dieses Verbs braucht — `OrmTDtoKundeAdd`,
+`OrmTDtoKundeRetrieveByCity`. Die Zeile unter dem SQL-Feld zeigt, als welche
+Art der Schlüssel gelesen wird und welches Statement der Server daraus baut.
 
-1. **Neu**, **Action-Key** `OrmAddTDtoKunde`, **Record-Typ** `TDtoKunde`.
+1. **Neu**, **Action-Key** `OrmTDtoKundeAdd`, **Record-Typ** `TDtoKunde`.
 2. **Record-Felder** ausfüllen, falls der Typ nicht im Server einkompiliert ist
    (eine Feldzeile je Zeile, wie in Pascal).
-3. **Schlüssel** setzen (z. B. `ID`) — Update, Retrieve und Delete brauchen ihn.
+3. **Schlüssel** setzen, wenn die Schlüsselspalte nicht `ID` heißt — Update
+   und Delete verwenden ihn.
 4. Entweder **SQL beim Aufruf erzeugen** anhaken (kein eigenes Statement) oder
    **SQL ins Feld erzeugen** drücken und den Entwurf bearbeiten.
 5. **Record-Werte eingeben…** öffnet ein Formular aus den Feldern des Typs.
@@ -82,13 +87,41 @@ Zum Record-Dialog:
 
 ---
 
+## Einen Retrieve anlegen
+
+Ein Retrieve ist ein where und eine Sortierung, sonst nichts: das Select drum
+herum kommt immer aus dem Record-Typ.
+
+1. **Neu**, **Action-Key** `OrmTDtoKundeRetrieveByCity`, **Record-Typ**
+   `TDtoKunde`. Sobald Schlüssel und Typ zusammenpassen, heißt das große Feld
+   **where:**.
+2. Das where ins Feld schreiben, ohne das Wort `where`: `City = ?`. Leer heißt
+   alle Zeilen; eine Zeile über ihren Schlüssel ist `ID = ?`.
+3. **order by** (weiter unten) nimmt die Sortierung, z. B. `Name`.
+4. Die Zeile unter dem Feld zeigt das Statement, das der Server ausführt.
+5. Je `?` einen **Parameter**, dann **Testen**. Die Antwort ist immer ein Array.
+
+**Typen** und **TestBounds** folgen dem where beim Tippen: ein Eintrag je `?`,
+Vorhandenes bleibt stehen, ein fehlender Typ wird `text`, ein fehlender
+Testwert `null`. Die Zeile unter dem Feld zeigt auf ein `null`, bis es ersetzt
+ist, und **Speichern** fragt nach, bevor Testwerte gespeichert werden, die
+nicht passen — *Alle prüfen* ruft jeden gespeicherten Eintrag mit seinen
+eigenen Werten auf, also müssen es seine Werte sein.
+
+Ein Select, das einen Join braucht oder Spalten, die der Record nicht hat, ist
+kein Retrieve: das wird eine gewöhnliche Abfrage, mit einem Schlüssel ohne
+`Orm`. Ein Delete (`Orm…Delete`) hat gar nichts zu schreiben — er geht über den
+Schlüssel.
+
+---
+
 ## Regeln, Caller-Scope, TestBounds
 
 | Feld | Beispiel | Wirkung |
 |---|---|---|
 | **Regeln** | `1:notempty;2:plz;3:email` | prüft Parameter *vor* dem Statement; verfügbar: `notempty`, `plz`, `email`, `len:min:max`, `range:min:max`, `oneof:a:b` |
 | **Caller-Scope** | `userid` | das **letzte** `?` bindet der Server selbst mit der ID des Aufrufers; der Client schickt dafür keinen Wert |
-| **Filter / Sortierung** | `City = ?` / `Name` | nur für `OrmList…`: das `where` bzw. `order by` |
+| **order by** | `Name` | nur für `Orm…Retrieve…`: die Sortierung; das `where` steht im großen Feld |
 | **TestBounds** | `["Wegberg"]` oder `{"ID":1,…}` | Testwerte für *Alle prüfen*; Array = Werteliste, Objekt = Record |
 
 **JSON als TestBounds** übernimmt das, was gerade unter *geht als JSON raus*

@@ -1,10 +1,10 @@
 object FormEditor: TFormEditor
   Left = 200
-  Height = 828
+  Height = 900
   Top = 100
   Width = 1180
   Caption = 'SQL Template Editor'
-  ClientHeight = 828
+  ClientHeight = 900
   ClientWidth = 1180
   Position = poScreenCenter
   OnCreate = FormCreate
@@ -156,12 +156,12 @@ object FormEditor: TFormEditor
   end
   object PanelKeys: TPanel
     Left = 0
-    Height = 208
-    Top = 620
+    Height = 276
+    Top = 624
     Width = 250
     Align = alLeft
     BevelOuter = bvNone
-    ClientHeight = 208
+    ClientHeight = 276
     ClientWidth = 250
     TabOrder = 1
     object ListKeys: TListBox
@@ -206,13 +206,13 @@ object FormEditor: TFormEditor
   end
   object Splitter1: TSplitter
     Left = 250
-    Height = 208
-    Top = 620
+    Height = 276
+    Top = 624
     Width = 6
   end
   object PanelEdit: TScrollBox
     Left = 0
-    Height = 280
+    Height = 412
     Top = 104
     Width = 1180
     HorzScrollBar.Visible = False
@@ -233,6 +233,7 @@ object FormEditor: TFormEditor
       Height = 21
       Top = 8
       Width = 320
+      OnChange = EditKeyChange
       TabOrder = 0
     end
     object LabelRights: TLabel
@@ -277,16 +278,30 @@ object FormEditor: TFormEditor
     end
     object MemoSql: TMemo
       Left = 100
-      Height = 116
+      Height = 94
       Top = 40
       Width = 1066
       Anchors = [akTop, akLeft, akRight]
       Font.Height = -12
       Font.Name = 'Menlo'
+      OnChange = MemoSqlChange
       ParentFont = False
       ScrollBars = ssAutoBoth
       TabOrder = 1
       WordWrap = False
+    end
+    object LabelSqlPreview: TLabel
+      Left = 100
+      Height = 16
+      Top = 140
+      Width = 1066
+      Anchors = [akTop, akLeft, akRight]
+      AutoSize = False
+      Font.Height = -12
+      Font.Name = 'Menlo'
+      ParentColor = False
+      ParentFont = False
+      ShowHint = True
     end
     object LabelParamTypes: TLabel
       Left = 12
@@ -301,6 +316,7 @@ object FormEditor: TFormEditor
       Height = 21
       Top = 164
       Width = 320
+      OnChange = SqlPartChange
       TabOrder = 11
     end
     object LabelRecordType: TLabel
@@ -316,6 +332,7 @@ object FormEditor: TFormEditor
       Height = 21
       Top = 164
       Width = 190
+      OnChange = EditKeyChange
       TabOrder = 13
     end
     object ButtonTypesFromBounds: TButton
@@ -460,6 +477,7 @@ object FormEditor: TFormEditor
       Top = 164
       Width = 166
       Anchors = [akTop, akLeft, akRight]
+      OnChange = SqlPartChange
       TabOrder = 15
     end
     object ButtonSqlFromRecord: TButton
@@ -471,34 +489,20 @@ object FormEditor: TFormEditor
       TabOrder = 22
       OnClick = ButtonSqlFromRecordClick
     end
-    object LabelFilter: TLabel
+    object LabelOrderBy: TLabel
       Left = 470
       Height = 16
       Top = 318
-      Width = 34
-      Caption = 'Filter:'
-      ParentColor = False
-    end
-    object EditFilter: TEdit
-      Left = 520
-      Height = 21
-      Top = 314
-      Width = 380
-      TabOrder = 20
-    end
-    object LabelOrderBy: TLabel
-      Left = 910
-      Height = 16
-      Top = 318
-      Width = 67
-      Caption = 'Sortierung:'
+      Width = 58
+      Caption = 'order by:'
       ParentColor = False
     end
     object EditOrderBy: TEdit
-      Left = 990
+      Left = 540
       Height = 21
       Top = 314
-      Width = 176
+      Width = 380
+      OnChange = SqlPartChange
       TabOrder = 21
     end
     object LabelRecordDecl: TLabel
@@ -568,6 +572,7 @@ object FormEditor: TFormEditor
       Top = 382
       Width = 296
       Anchors = [akTop, akLeft, akRight]
+      OnChange = SqlPartChange
       TabOrder = 24
       TextHint = 'Werte für den Sammellauf, z.B. ["Wegberg"]'
     end
@@ -587,7 +592,7 @@ object FormEditor: TFormEditor
     Cursor = crVSplit
     Left = 0
     Height = 8
-    Top = 384
+    Top = 516
     Width = 1180
     Align = alTop
     Beveled = True
@@ -597,7 +602,7 @@ object FormEditor: TFormEditor
   object PanelActions: TPanel
     Left = 0
     Height = 100
-    Top = 392
+    Top = 524
     Width = 1180
     Align = alTop
     BevelOuter = bvNone
@@ -730,8 +735,8 @@ object FormEditor: TFormEditor
   end
   object PagesResult: TPageControl
     Left = 256
-    Height = 208
-    Top = 620
+    Height = 276
+    Top = 624
     Width = 924
     ActivePage = TabDto
     Align = alClient

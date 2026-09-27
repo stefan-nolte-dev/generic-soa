@@ -42,9 +42,17 @@ Record schreiben* weiter unten.
 
 `ParseDynArray` hat 16 Zeilen, wird einmal geschrieben und bedient jede
 Abfrage, die der Server je anbieten wird — dieselbe Aufrufform für jeden
-Action-Key und jede Zeilenform. `ClientTests` zeigt das an zwei Records, die
-nichts miteinander zu tun haben, `TDtoCustomer` und `TDtoTurnover`; jeder
-Block nennt den Typ, in den geparst wurde. Das DTO existiert nur im Client.
+Action-Key und jede Zeilenform. Zwei Records, die nichts miteinander zu tun
+haben, füllt derselbe Aufruf, jeder mit dem Typ, den er haben will:
+
+```pascal
+ParseDynArray('GetCustomersByCity', _Arr(['Wegberg']),
+  Customers, TypeInfo(TDtoCustomerArray));
+ParseDynArray('GetTurnoverPerCustomer', _Arr([100.0]),
+  Turnover, TypeInfo(TDtoTurnoverArray));
+```
+
+Das DTO existiert nur im Client.
 Nichts muss über App-, Domain- und Persistenzschicht gespiegelt werden, und es
 gibt keine Konverter, die zwischen diesen Fassungen Feld für Feld kopieren.
 
@@ -168,7 +176,6 @@ src/serv/app/   ServSqlTemplates.pas        Start — sieht alles
 src/client/     ClientDtos.pas              nur Lese-Records, nur clientseitig
                 AppSqlClient.pas            Verbindung
                 u_client_parsing.pas        ParseDynArray, WriteRecord
-src/clienttests/ ClientTests.pas            der Machbarkeitsnachweis
 src/clientlaz/  u_main.pas / .lfm           ein Knopf, ein Memo
 src/editor/     EditorDb.pas                die eigene Verbindung des Editors
                 SqlBounds.pas               typisierte Parameter und Einsetzen
@@ -203,7 +210,7 @@ Die Ordner sind das, was jedes Projekt auf seinen Unit-Suchpfad setzt:
 
 | Projekt | sieht |
 |---|---|
-| Client | `common`, `app`, `client`, `clienttests`, `clientlaz` |
+| Client | `common`, `app`, `client`, `clientlaz` |
 | Server | `common`, `commonserv`, `infra`, `dom`, `app`, `serv/app` |
 | Editor | `common`, `commonserv`, `infra`, `dom`, `app`, `client`, `editor` |
 
@@ -421,9 +428,9 @@ Reichweite. Den Editor auf eine Entwicklungsdatenbank richten.
 
 | Knopf | was er tut |
 |---|---|
-| Record-Werte eingeben… | bei einem `OrmAdd…`/`OrmUpdate…`-Schlüssel: ein Dialog aus den Feldern seines Recordtyps — beim Update gefüllt aus der Zeile, die der Schlüssel nennt — und der entstandene Record durch die Bindung des Servers, in derselben Transaktion, deren Ende das Feld *Rollback* bestimmt |
+| Record-Werte eingeben… | bei einem `Orm…Add`/`Orm…Update`-Schlüssel: ein Dialog aus den Feldern seines Recordtyps — beim Update gefüllt aus der Zeile, die der Schlüssel nennt — und der entstandene Record durch die Bindung des Servers, in derselben Transaktion, deren Ende das Feld *Rollback* bestimmt |
 | Prüfen | die Prüfungen ohne Datenbank: Zahl der Parameter gegen die `?` im Statement (die in Stringliteralen zählen nicht mit), ein `where` in jedem update und delete, gleich wo das Verb steht — nach einem CTE steht es in der Mitte, und gerade dort rutscht ein fehlendes `where` am ehesten durch —, ein erkennbares erstes Schlüsselwort — danach der ganze Satz durch `TSqlTemplateRegistry.Reload`, dieselbe Prüfung, die der Server bei `ReloadTemplates` anwendet. Was der Editor annimmt, nimmt der Server an. |
-| Testen | führt aus, auf dem Pfad, den die Checkbox wählt. Steht im SQL-Feld nichts und ist ein Record-Typ genannt, gibt es einen dritten: der Satz geht mit leerem Statement nach unten und der Code des Servers erzeugt es — `SelectJson` bei einem `OrmRetrieve…`, `Execute` bei einem `OrmDelete…` —, der eine gebundene Wert ist der Schlüssel. Die Art steht am Action-Key, denn einen Text, an dem man sie ablesen könnte, gibt es noch nicht. Selects erscheinen als JSON - lesbar aufbereitet oder genau so, wie es über die Leitung geht - und als generisch aufgebaute Tabelle; Schreibvorgänge werden zurückgerollt, solange das Feld *Rollback* angehakt ist — ohne Haken werden sie committet, und die Meldung sagt es. Die `?` werden gezählt, bevor ein Treiber angefasst wird: ein fehlender Wert ist bei SQLite ein NULL und keine Zeile, bei ODBC eine Ausnahme ohne abfragbaren Grund — die Zahl ist der Grund. Ein Fehlschlag trägt die Worte des Treibers selbst — den Grund, den Infra auf dem Weg nach draußen abgelegt hat, oder `Connection.LastErrorMessage` für ein Statement, das der Treiber rundheraus abgelehnt hat —, statt eines Verweises auf ein Protokoll, das man nicht sieht, und holt die Meldungen nach vorn, statt einen leeren JSON-Reiter stehen zu lassen. |
+| Testen | führt aus, auf dem Pfad, den die Checkbox wählt. Steht im SQL-Feld nichts und ist ein Record-Typ genannt, gibt es einen dritten: der Satz geht mit leerem Statement nach unten und der Code des Servers erzeugt es — `SelectJson` bei einem `Orm…Retrieve…` mit den Werten seines where, `Execute` bei einem `Orm…Delete` mit dem Schlüssel. Die Art steht am Action-Key, denn einen Text, an dem man sie ablesen könnte, gibt es noch nicht. Selects erscheinen als JSON - lesbar aufbereitet oder genau so, wie es über die Leitung geht - und als generisch aufgebaute Tabelle; Schreibvorgänge werden zurückgerollt, solange das Feld *Rollback* angehakt ist — ohne Haken werden sie committet, und die Meldung sagt es. Die `?` werden gezählt, bevor ein Treiber angefasst wird: ein fehlender Wert ist bei SQLite ein NULL und keine Zeile, bei ODBC eine Ausnahme ohne abfragbaren Grund — die Zahl ist der Grund. Ein Fehlschlag trägt die Worte des Treibers selbst — den Grund, den Infra auf dem Weg nach draußen abgelegt hat, oder `Connection.LastErrorMessage` für ein Statement, das der Treiber rundheraus abgelehnt hat —, statt eines Verweises auf ein Protokoll, das man nicht sieht, und holt die Meldungen nach vorn, statt einen leeren JSON-Reiter stehen zu lassen. |
 | aus Parametern übernehmen | füllt `ParamTypes` aus den Typen, die für die Testwerte schon gewählt wurden — Deklaration und Werte können dann nicht auseinanderlaufen. Solange das Feld leer ist, füllt es sich von selbst; der Knopf überschreibt |
 | Typ aus Ergebnis erzeugen | der Record und sein Array, fertig zum Einfügen in `ClientDtos.pas` |
 | In die Zwischenablage | dieser Quelltext, in der Zwischenablage |
@@ -602,7 +609,7 @@ belegen sollte.
 | `RecordDecl` | die Felder dieses Records, als textuelle RTTI von mORMot | der Typ muss im Server einkompiliert sein |
 | `KeyField` | die Schlüsselspalte eines erzeugten Statements | `ID` |
 | `CallerScope` | bindet die Identität des Aufrufers ans letzte `?` | der Client setzt jeden Wert |
-| `Filter` | die Where-Klausel einer erzeugten Liste, ohne das Wort `where` | jede Zeile |
+| `Filter` | die Where-Klausel eines erzeugten Retrieve, ohne das Wort `where`; im Editor steht sie im großen Feld | jede Zeile |
 | `OrderBy` | ihre Sortierung, ohne die Worte `order by` | die Reihenfolge der Datenbank |
 
 Ist `RecordType` gesetzt, darf `Sql` **leer** sein — der einzige Fall, in dem
@@ -743,7 +750,7 @@ Statement — geprüft wird also der Generator, der später wirklich läuft.
 Gegen `token strict` gemessen, 30 Templates: als `user` laufen 15 und 15 sind
 offen — Schreibvorgänge ausgelassen, `GetGehaelter` offen, weil Gruppe 2 nicht
 seine ist; als `admin` mit erlaubten Schreibvorgängen laufen alle 30. Der eine
-Befund dort stammt vom zweiten Lauf hintereinander: `OrmAddTDtoArtikelRow`
+Befund dort stammt vom zweiten Lauf hintereinander: `OrmTDtoArtikelRowAdd`
 nennt in `TestBounds` eine feste `ArtNr`, und der eindeutige Index sagt das
 auch. Ein Sammellauf, der schreibt, lässt Zeilen zurück — deshalb wird vorher
 gefragt.
@@ -1028,12 +1035,12 @@ dieser Records:
 
 ```pascal
 // Client — eine Funktion für jeden Record, den es je geben wird
-status := WriteRecord('OrmUpdateTDtoCustomer', cust, TypeInfo(TDtoCustomer));
+status := WriteRecord('OrmTDtoCustomerUpdate', cust, TypeInfo(TDtoCustomer));
 ```
 
 ```
 -- templates.sqlite: die ganze Zeile. Ein Statement gibt es nicht.
-ActionKey  = 'OrmUpdateTDtoCustomer'
+ActionKey  = 'OrmTDtoCustomerUpdate'
 Sql        = ''
 RecordType = 'TDtoCustomer'
 ```
@@ -1058,7 +1065,7 @@ als textuelle RTTI von mORMot, und der Typ wird beim ersten Aufruf, der ihn
 braucht, aus diesem Text registriert.
 
 ```
-ActionKey  = 'OrmUpdateTDtoArtikelRow'
+ActionKey  = 'OrmTDtoArtikelRowUpdate'
 Sql        = ''
 RecordType = 'TDtoArtikelRow'
 RecordDecl = 'ArtNr: integer; ArtName: RawUtf8; Kind: RawUtf8'
@@ -1075,9 +1082,9 @@ deklarierten Records werden als sie selbst gebunden, genau wie bei einem
 einkompilierten.
 
 Zum Ausprobieren liegen drei solche Zeilen im ausgelieferten Satz, und zu
-keinem ihrer Typen gibt es Pascal: `OrmAddTDtoProjektRow` für eine Tabelle ganz
-ohne DTO, und das Paar von oben, `OrmAddTDtoArtikelRow` und
-`OrmUpdateTDtoArtikelRow`, die sich in genau einer Spalte unterscheiden — beim
+keinem ihrer Typen gibt es Pascal: `OrmTDtoProjektRowAdd` für eine Tabelle ganz
+ohne DTO, und das Paar von oben, `OrmTDtoArtikelRowAdd` und
+`OrmTDtoArtikelRowUpdate`, die sich in genau einer Spalte unterscheiden — beim
 Insert bleibt `KeyField` leer, `ArtNr` wird also geschrieben wie jedes andere
 Feld, beim Update steht es dort und wandert damit ins `where`. Gemessen: der
 Insert legt eine Zeile mit vergebener `ID` an, das Update ändert sie, und ein
@@ -1127,9 +1134,19 @@ und sie darf das Unit, das SQL zusammensetzt, nicht sehen:
 | | |
 |---|---|
 | die Marke | der Action-Key beginnt mit `Orm`, und nichts sonst tut das |
-| das Verb | hinter der Marke: `Add`/`Insert`, `Update`, `Retrieve`/`Get`, `List`/`Select` oder `Delete` |
+| der Typ | hinter der Marke der Recordtyp, voll ausgeschrieben, genau wie ihn die Spalte `RecordType` nennt |
+| das Verb | hinter dem Typ: `Add`, `Update`, `Retrieve` oder `Delete`; was danach kommt, ist der eigene Name des Autors |
 | die Tabelle | der Recordtyp ohne `TDto` vorn und `Row` hinten — `TDtoCustomerRow` → `Customer`, `TDtoArtikel` → `Artikel` |
 | der Schlüssel | die Spalte, die `KeyField` nennt, und `ID`, wenn es keine nennt: ein erzeugter Insert überlässt sie der Datenbank, ein erzeugtes Update setzt sie ins `where` |
+
+Ein Schlüssel lautet also `Orm<RecordType><Verb>[Name]`: `OrmTDtoCustomerAdd`,
+`OrmTDtoCustomerRetrieve`, `OrmTDtoCustomerRetrieveByCity`. Der Typ steht voll
+ausgeschrieben da, damit der Schlüssel allein sagt, was reist, und weil die
+Spalte `RecordType` sagt, wo der Typ endet, lassen sich `TDtoArtikel` und
+`TDtoArtikelRow` nicht verwechseln. Was hinter dem Verb steht, wählt man wie
+einen Funktionsnamen: zwei Retrieves auf denselben Typ unterscheiden sich
+dort. Ein Schlüssel, der mit `Orm` beginnt, aber nicht mit seinem Recordtyp
+und einem Verb weitergeht, wird abgelehnt, mit Grund.
 
 Bis es `KeyField` gab, hieß die Schlüsselspalte `ID` und sonst nichts. Die
 Konvention trug in diesem Beispiel und trägt draußen fast nirgends: in einer
@@ -1150,42 +1167,46 @@ Aufrufer kommt nichts hinein, und die Werte werden weiter gebunden.
 ### Zwei Verben, die keinen Record schicken
 
 `Retrieve` und `Delete` sind nicht das Spiegelbild von `Add` und `Update`, und
-genau das ist das Interessante daran. Unterwegs ist nur der Schlüssel:
+genau das ist das Interessante daran. Unterwegs ist kein Record, nur
+gebundene Werte:
 
 ```
-OrmRetrieveTDtoCustomer + TDtoCustomer  ->  select ID, Name, City from Customer where ID = ?
-OrmDeleteTDtoCustomer   + TDtoCustomer  ->  delete from Customer where ID = ?
+OrmTDtoCustomerRetrieve + TDtoCustomer + where 'ID = ?'
+  ->  select ID, Name, City from Customer where (ID = ?);
+OrmTDtoCustomerDelete   + TDtoCustomer
+  ->  delete from Customer where ID = ?;
 ```
 
 Welche Spalten zu lesen sind, ist Sache des Recordtyps, und den Typ kennt der
 Server aus dem Template — eine Teilmenge muss der Aufrufer also nie
-beschreiben. Genau so macht es ein ORM: `Retrieve` schickt eine ID und für
-eine Teilmenge eine Liste von Feldnamen, nie einen Record.
+beschreiben. Genau so macht es ein ORM: `Retrieve` schickt die Werte einer
+Where-Klausel und für eine Teilmenge eine Liste von Feldnamen, nie einen
+Record.
 
-Bei der Schlüsselspalte geht der Unterschied noch einen Schritt weiter. Ein
-Update nimmt seinen Schlüssel **aus dem Record**, der das Feld also tragen
-muss; ein Retrieve und ein Delete bekommen ihn vom Aufrufer, `KeyField` darf
-dort also eine Spalte nennen, die der Recordtyp gar nicht hat — das `where`
-steht trotzdem.
-
-Und weil dieser eine Wert ein gewöhnlicher gebundener Wert ist, brauchen die
-beiden keinen neuen Aufruf: ein Retrieve ist `GetJsonFromAction`, ein Delete
-ist `WriteDataForAction`, dieselben zwei Methoden wie für jedes von Hand
+Und weil diese Werte gewöhnliche gebundene Werte sind, brauchen die beiden
+keinen neuen Aufruf: ein Retrieve ist `GetJsonFromAction`, ein Delete ist
+`WriteDataForAction`, dieselben zwei Methoden wie für jedes von Hand
 geschriebene Statement. Der Contract hat sich nicht geändert. Geändert hat
 sich eine Sperre in der Domänenschicht, die bisher jeden Schlüssel mit
 Recordtyp vom Wertelisten-Pfad fernhielt — ein erzeugtes Delete ist genau das
 und wird jetzt durchgelassen, erkannt am Namen.
 
-### Die Liste: viele Zeilen, gefiltert vom Template
+### Der Retrieve: ein where, sonst nichts
 
-`OrmList…` ist der Retrieve für mehr als eine Zeile. mORMots `RetrieveList`
-nimmt seine Where-Klausel vom **Aufrufer**; hier steht sie im Template, in der
-Spalte `Filter`, und der Aufrufer füllt nur ihre `?`:
+Ein Retrieve ist das Select über die Spalten des Records, geformt von zwei
+Spalten des Templates: `Filter`, die Where-Klausel ohne das Wort `where`, und
+`OrderBy`. mORMots `Retrieve` und `RetrieveList` nehmen ihre Where-Klausel vom
+**Aufrufer**; hier steht sie im Template, und der Aufrufer füllt nur ihre `?`:
 
 ```
-OrmListTDtoCustomer + TDtoCustomer + Filter 'City = ?' + OrderBy 'Name'
+OrmTDtoCustomerRetrieveByCity + TDtoCustomer + where 'City = ?' + order by 'Name'
   ->  select ID, Name, City from Customer where (City = ?) order by Name;
 ```
+
+Eine Zeile oder viele entscheidet das where, und die Antwort ist immer ein
+Array. Ohne where sind es alle Zeilen — genau das zeigt der Editor unter dem
+Feld an, also wird niemand davon überrascht. Eine Zeile über ihren Schlüssel
+ist `ID = ?`, geschrieben wie jede andere Bedingung.
 
 Die Rollen sind damit sauber getrennt: **die Form der Abfrage gehört dem
 Template, die Werte dem Aufrufer.** Nichts, was ein Client schickt, wird je als
@@ -1193,26 +1214,33 @@ SQL gelesen — die Eigenschaft, die dieses Beispiel trägt, bleibt unangetastet
 und der nützliche Teil des ORM ist trotzdem da: die Spaltenliste kommt aus dem
 Recordtyp, das Ergebnis lädt in `TDtoCustomerArray`.
 
-Der Filter wird **geklammert** eingesetzt. Das ist keine Kosmetik: die
+Das where wird **geklammert** eingesetzt. Das ist keine Kosmetik: die
 Domänenschicht hängt bei `CallerScope` ihre eigene Bedingung mit `and` an, und
 `and` bindet stärker als `or` — ein `City = ? or Name = ?` ohne Klammern ließe
 die halbe Tabelle am Scoping vorbei. Wie viele Werte ein solches Template
 erwartet, weiß der Server, bevor das Statement existiert: `ExpectedParamCount`
-zählt die `?` des Filters, so wie es sonst die des Statements zählt.
+zählt die `?` des where, so wie es sonst die des Statements zählt, und
+*Prüfen* im Editor zählt genauso wie der Server.
+
+Ein Retrieve oder ein Delete trägt nie ein eigenes Statement. Ein Select, das
+einen Join braucht, eine Spalte, die der Record nicht hat, ein group by, ist
+kein ORM-Aufruf und tut nicht so: es ist ein gewöhnliches Template ohne die
+`Orm`-Marke, dessen Zeilen der Client trotzdem in einen Recordtyp lädt. Eine
+Zeile, die beides hat, lehnt der Server ab, und der Editor sagt es.
 
 | | schickt | liefert | Methode |
 |---|---|---|---|
-| `OrmAdd…` / `OrmUpdate…` | den ganzen Record | einen Status | `WriteRecordForAction` |
-| `OrmRetrieve…` | den Schlüssel | die Zeile, in denselben Recordtyp | `GetJsonFromAction` |
-| `OrmList…` | die Werte des Filters | die Zeilen, als Array desselben Typs | `GetJsonFromAction` |
-| `OrmDelete…` | den Schlüssel | einen Status | `WriteDataForAction` |
+| `Orm…Add` / `Orm…Update` | den ganzen Record | einen Status | `WriteRecordForAction` |
+| `Orm…Retrieve…` | die Werte des where | die Zeilen, als Array desselben Typs | `GetJsonFromAction` |
+| `Orm…Delete` | den Schlüssel | einen Status | `WriteDataForAction` |
 
 Alle vier gegen `demo.sqlite` gemessen: Insert, Update, Retrieve in einen
-`TDtoCustomer` (`ID 29 / Rekord GmbH / Drolshagen`), Delete. Ein Retrieve auf
-einen Schlüssel, den es nicht gibt, antwortet `sqlNoRows` und lässt den Record
-unangetastet; ein Delete darauf antwortet `sqlNothingWritten`. Einen Record in
-ein Retrieve zu schicken wird abgelehnt, und ein Record-Schlüssel ohne die
-`Orm`-Marke ebenso — *„takes a record but does not start with ORM"* im Log.
+`TDtoCustomer` (`ID 29 / Rekord GmbH / Drolshagen`), Delete. Ein Retrieve, der
+nichts trifft, antwortet `sqlNoRows` und lässt den Record unangetastet; ein
+Delete auf einen fehlenden Schlüssel antwortet `sqlNothingWritten`. Einen
+Record in ein Retrieve zu schicken wird abgelehnt, und ein Record-Schlüssel
+ohne die `Orm`-Marke ebenso — *„takes a record but does not start with ORM"*
+im Log.
 
 ### Wenn die Konvention nicht passt
 
@@ -1229,30 +1257,21 @@ Namens. Ein Umsortieren der Record-Felder kann die Werte nicht stillschweigend
 verschieben, ein Platzhalter darf mehrfach vorkommen, und `:Name` zu `?` zu
 machen ist eine Ersetzung innerhalb einer bereits registrierten Anweisung.
 
-`OrmUpdateCustomerRecord` in diesem Beispiel ist dieser längere Weg, neben den
+`OrmTDtoCustomerUpdateNameCity` in diesem Beispiel ist dieser längere Weg, neben den
 drei erzeugten Schlüsseln, damit beides nebeneinander zu sehen ist.
 
 Den Anfang macht im Editor *SQL ins Feld erzeugen*: der Knopf schreibt das
 erzeugte Statement ins SQL-Feld und nimmt den Haken bei *SQL beim Aufruf
 erzeugen* wieder weg. Bei einem Record mit dreißig Feldern ist das der
 Unterschied zwischen „diesen Weg gibt es" und „diesen Weg nimmt man auch".
-Was dabei herauskommt, ist ein Entwurf zum Weiterschreiben, kein fertiger Satz.
-Bei einem Retrieve und einer Liste hört er auf, wo das Schreiben anfängt:
-
-```sql
-select ID, Name, City from Customer
-```
-
-Spaltenliste und Tabelle stammen aus dem Recordtyp — der Teil, den niemand
-tippen will —, das `where` ist der Teil, der geschrieben wird, also steht es
-nicht da und muss auch nicht weggelöscht werden. Für jedes `?`, das dabei
-entsteht, legt man einen Parameter an, und dann läuft *Testen*.
-
-Für Insert und Update kommt der ganze Satz, in der `:Namen`-Form und nicht mit
+Was dabei herauskommt, ist ein Entwurf zum Weiterschreiben, kein fertiger
+Satz: für Insert und Update der ganze Satz, in der `:Namen`-Form und nicht mit
 `?` — ein geschriebenes Record-Statement mit Fragezeichen wird abgelehnt, weil
-niemand sagen könnte, welches Feld an welchem hängt. Ein Delete behält sein
-`where`, und das ist keine Unsauberkeit: `delete from Customer` als
-Ausgangspunkt liegt einen Tastendruck neben einer geleerten Tabelle.
+niemand sagen könnte, welches Feld an welchem hängt.
+
+Retrieve und Delete bietet der Knopf nicht an: sie tragen kein eigenes
+Statement (siehe oben), und bei einem Retrieve ist das Feld ohnehin schon sein
+where.
 
 Ab dann trägt das Template sein eigenes Statement und folgt dem Recordtyp
 nicht mehr — ein neues Feld im Record erreicht ein erzeugtes Statement von
@@ -1449,13 +1468,13 @@ bearbeitet wird also, was dasteht. Womit er sie holt, ist keine zweite Regel:
 es ist der Retrieve-Zweig desselben Erzeugers, beim Namen gerufen —
 `RetrieveSqlFor` übergeht das eigene Verb des Templates und baut einen Select
 über denselben Recordtyp und dieselbe Schlüsselspalte. Ein
-`OrmUpdateTDtoArtikelRow` wird deshalb über `where ArtNr = ?` gesucht, genau
+`OrmTDtoArtikelRowUpdate` wird deshalb über `where ArtNr = ?` gesucht, genau
 die Spalte, auf die sein Update passt. Leer gelassen öffnet die Abfrage den
 Dialog auf Vorgabewerten; ein Schlüssel, der nichts trifft, hält mit genau
 diesem Grund an, statt ein Formular zu zeigen, das eine Zeile vortäuscht. Ein
 Insert wird gar nicht erst nach einem Schlüssel gefragt.
 
-Gemessen: `OrmUpdateTDtoCustomer` auf `ID` 2 lädt
+Gemessen: `OrmTDtoCustomerUpdate` auf `ID` 2 lädt
 `{"ID":2,"Name":"Ostwald Holzbearbeitung","City":"Detmold"}`, der geänderte
 Record geht durch das erzeugte Update — und danach steht die Zeile in
 `demo.sqlite` unverändert da, weil die Transaktion zurückgerollt wurde.
