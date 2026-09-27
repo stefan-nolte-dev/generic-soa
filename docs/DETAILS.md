@@ -413,14 +413,14 @@ database.
 
 | button | what it does |
 |---|---|
-| Record-Werte eingeben… | for an `Orm…Add`/`Orm…Update` key: a dialog built from the fields of its record type — for an update, filled from the row that key names — and the record it produces run through the server's own binding, in the same transaction the Rollback box decides the end of |
-| Prüfen | the checks that need no database: parameter count against the `?` in the statement (ignoring any inside a string literal), a `where` in every update and delete wherever the verb stands - after a common table expression it is in the middle, which is where a missing `where` is easiest to overlook - a recognisable first keyword — then the whole set through `TSqlTemplateRegistry.Reload`, the same check the server applies on `ReloadTemplates`. What the editor accepts, the server accepts. |
-| Testen | runs it, on whichever of the two paths the checkbox selects. With nothing in the SQL box and a record type named, there is a third: the record goes down with an empty statement and the server's own code generates it - `SelectJson` for an `Orm…Retrieve…` with the values of its where clause, `Execute` for an `Orm…Delete` with the key. The kind is read off the action key, because there is no text to read it off yet. Selects show as JSON - reformatted, or exactly as it goes on the wire - and as a generically built table; writes are rolled back unless the Rollback box is unticked, and then they are committed and said to be. The `?` are counted before any driver is touched: a missing value is a NULL and no rows on SQLite and an exception with no recoverable reason on ODBC, and the count is the reason. A failure carries the driver's own words - the reason infra kept on the way out, or `Connection.LastErrorMessage` for a statement the driver refused outright - not a pointer to a log you cannot see, and brings the messages to the front rather than leaving an empty JSON tab there. |
-| aus Parametern übernehmen | fills `ParamTypes` from the kinds already chosen for the test values - the declaration and the values then cannot disagree. It fills itself while the field is empty; the button overwrites |
-| Typ aus Ergebnis erzeugen | the record and its array, ready to paste into `ClientDtos.pas` |
+| Enter record values… | for an `Orm…Add`/`Orm…Update` key: a dialog built from the fields of its record type — for an update, filled from the row that key names — and the record it produces run through the server's own binding, in the same transaction the Rollback box decides the end of |
+| Check | the checks that need no database: parameter count against the `?` in the statement (ignoring any inside a string literal), a `where` in every update and delete wherever the verb stands - after a common table expression it is in the middle, which is where a missing `where` is easiest to overlook - a recognisable first keyword — then the whole set through `TSqlTemplateRegistry.Reload`, the same check the server applies on `ReloadTemplates`. What the editor accepts, the server accepts. |
+| Test | runs it, on whichever of the two paths the checkbox selects. With nothing in the SQL box and a record type named, there is a third: the record goes down with an empty statement and the server's own code generates it - `SelectJson` for an `Orm…Retrieve…` with the values of its where clause, `Execute` for an `Orm…Delete` with the key. The kind is read off the action key, because there is no text to read it off yet. Selects show as JSON - reformatted, or exactly as it goes on the wire - and as a generically built table; writes are rolled back unless the Rollback box is unticked, and then they are committed and said to be. The `?` are counted before any driver is touched: a missing value is a NULL and no rows on SQLite and an exception with no recoverable reason on ODBC, and the count is the reason. A failure carries the driver's own words - the reason infra kept on the way out, or `Connection.LastErrorMessage` for a statement the driver refused outright - not a pointer to a log you cannot see, and brings the messages to the front rather than leaving an empty JSON tab there. |
+| Take from parameters | fills `ParamTypes` from the kinds already chosen for the test values - the declaration and the values then cannot disagree. It fills itself while the field is empty; the button overwrites |
+| Type from result | the record and its array, ready to paste into `ClientDtos.pas` |
 | In die Zwischenablage | that source, on the clipboard |
-| Speichern / Löschen | one template in `templates.sqlite`, and `templates.sql` rewritten right after - the readable half of a binary file cannot fall behind if nobody has to remember it. There is no export button: one next to Speichern reads as a step Speichern does not take |
-| Server neu laden | `ReloadTemplates` on a running server — the new key answers without a restart |
+| Save / Delete | one template in `templates.sqlite`, and `templates.sql` rewritten right after - the readable half of a binary file cannot fall behind if nobody has to remember it. There is no export button: one next to Speichern reads as a step Speichern does not take |
+| Reload server | `ReloadTemplates` on a running server — the new key answers without a restart |
 
 ### Parameters have declared types
 
@@ -447,7 +447,7 @@ exactly what `BindVariant` distinguishes; anything else would be a fiction.
 Next to the list stands the JSON those values become. That is what a client
 actually puts on the wire, and it is worth looking at, because JSON knows only
 null, boolean, number and string. A `[date]` travels as a string and is bound
-as a string on the other side — so "Prüfen" re-reads the JSON with
+as a string on the other side — so "Check" re-reads the JSON with
 `JSON_FAST_FLOAT`, which is what `TInterfaceFactory` sets for a variant
 argument, and names every parameter whose type would change on the way. That
 is the server's own parsing, not an approximation of it.
@@ -459,7 +459,7 @@ fault were in the binding — a value that never arrives, an order quietly
 wrong — the editor would reproduce it and report success. Nothing in a shared
 path can reveal a fault in the shared path.
 
-The checkbox **Gegenprobe** answers that. It writes the values into the
+The checkbox **Cross-check** answers that. It writes the values into the
 statement as SQL literals and binds nothing, so the two runs have no code in
 common where the fault could hide. Same result, and the binding delivered what
 the literal says. Different, and you know where to look.
@@ -701,7 +701,7 @@ Nothing on the server reads `TestBounds`. It is carried in `TSqlRec` like
 every other column and ignored there, which is what makes a generic test run
 cost no server code at all.
 
-With *über den Server ausführen* ticked, the same sweep goes through the
+With *run through the server* ticked, the same sweep goes through the
 server instead, and the two lines that were always open close: a scoped
 template **runs**, because the server binds the identity — `GetMeineRechnungen`
 answers `sqlOk` there while the direct sweep can only report it as open. A
@@ -803,7 +803,7 @@ invoices 4 and 5, `caller=4` returns 7–9, `caller=3` returns 6, and no argumen
 returns nothing. A screw for trying it out, not authentication — it claims every
 anonymous caller is that one user, and says so in brown at startup.
 
-The editor cannot show this: its "Testen" runs the statement straight on the
+The editor cannot show this: its "Test" runs the statement straight on the
 connection, not through the domain layer. `CallerScope` does not apply there and
 the last `?` carries whatever was typed. With a caller scope set the editor now
 says so in front of the status message — a green run there proves nothing about
@@ -914,7 +914,7 @@ That is mORMot's own place for *"your own header, e.g. a JWT as authentication
 bearer"*, and from then on **every** call of that connection carries it without
 a single call site knowing that it exists.
 
-The window has an *Anmelden…* button that turns into *Abmelden*, and the login
+The window has an *Log in…* button that turns into *Log out*, and the login
 state is in the title bar — name, masks and remaining minutes, from `WhoAmI`,
 so from the server rather than guessed out of the token. When a call comes back
 `sqlNeedsLogin`, the client asks once and repeats that same call: this is what
@@ -925,7 +925,7 @@ The login window is built at run time (`u_logindialog` in `src/ui`), without an
 LFM: it is three controls, and a form file for that is more to keep in step
 than to gain. The editor uses the same unit — two programs asking for the same
 two fields, and no reason for two windows to drift apart. There it answers
-*Server neu laden*, which asks once when the server says `sqlNeedsLogin` and
+*Reload server*, which asks once when the server says `sqlNeedsLogin` and
 then repeats the call.
 
 Reloading is administrative, and since a token can now say so, `CanReload`
@@ -936,12 +936,12 @@ with `token strict`: no token `sqlNeedsLogin`, `user` (writes nothing)
 
 ### Testing through the server
 
-The editor's own *Testen* runs the statement straight on its database
+The editor's own *Test* runs the statement straight on its database
 connection. That is what makes it useful on a draft — and it is why it cannot
 answer half the questions this document is about: rights masks, `CallerScope`
 and the rules all live in the domain layer, and that run goes past it.
 
-The checkbox *über den Server ausführen* turns the run around: the same button
+The checkbox *run through the server* turns the run around: the same button
 calls `GetJsonFromAction` or `WriteDataForAction` like any client, so the
 answer that comes back is the real one, mask and scope and rules included. It
 asks for a login when the server says `sqlNeedsLogin`, and repeats the call.
@@ -956,7 +956,7 @@ rollback promise the editor makes everywhere else cannot hold on a call it
 does not own, so a write asks once more before it goes.
 
 A record write goes the same way, through the dialog it has always gone
-through. *Record-Werte eingeben…* produces one record's JSON, and with the box
+through. *Enter record values…* produces one record's JSON, and with the box
 ticked that JSON is sent to `WriteRecordForAction` instead of executed here —
 the type is resolved and the statement generated in the server, so the box for
 the executed SQL stays empty. It is empty honestly: the statement was made
@@ -1160,7 +1160,7 @@ layer appends its own condition with `and` when `CallerScope` is set, and
 let half the table past the scope. How many values such a template expects is
 known before the statement exists - `ExpectedParamCount` counts the `?` of the
 where clause the way it otherwise counts those of the statement, and the
-editor's *Prüfen* counts the same way the server does.
+editor's *Check* counts the same way the server does.
 
 A retrieve or a delete never carries a statement of its own. A select that
 needs a join, a column the record does not have, a group by, is not an ORM
@@ -1370,7 +1370,7 @@ is the better fit.
 number of bounds, requiring a `where` in every update and delete. The server
 does not do this, because these are cheaper to check when a template is
 written than on every request - which is where they now live, behind the
-editor's "Prüfen" button. Value ranges per key would still belong on the
+editor's "Check" button. Value ranges per key would still belong on the
 server, and would be a field on `TSqlRec`.
 
 **Server-generated field values.** A record arrives with its fields and is
@@ -1399,7 +1399,7 @@ not have this problem: it is opened to be read and closed again, so it can be
 edited in a viewer while the server runs.
 
 The editor can now test a record template too, and it does it without
-breaking the rule that this tool never commits. *Record-Werte eingeben…*
+breaking the rule that this tool never commits. *Enter record values…*
 resolves the record type the way the server resolves it, builds a dialog from
 whatever fields that turns out to have — one row per field, with the type it
 will be bound as beside it — and hands back the JSON a client would send. That
@@ -1433,7 +1433,7 @@ What was typed survives twice over. The dialog remembers the record per action
 key for the session and opens on it next time rather than on empty fields —
 for an update only when no row came from the database. And the JSON then
 stands in the *what would travel* box: for a record template that object is
-exactly what a client sends, and *JSON als TestBounds* puts it into the column
+exactly what a client sends, and *JSON as TestBounds* puts it into the column
 in one press, where the sweep and the run through the server pick it up again.
 
 It does not go into the parameter list, and that is deliberate. The generated
@@ -1443,7 +1443,7 @@ something it does not keep. An insert shows the row it got back, in the table
 tab, the way a select shows its rows.
 
 That says where the values come from, not that such a template cannot be
-tested. *Testen* therefore looks for the record where the window shows it: the
+tested. *Test* therefore looks for the record where the window shows it: the
 *what would travel* box first, then the last record entered in the dialog for
 this key, then the `TestBounds` column. What it finds takes the same road the
 dialog takes — through the server with the box ticked, over the editor's own

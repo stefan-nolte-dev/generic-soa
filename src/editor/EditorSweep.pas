@@ -81,7 +81,7 @@ type
 
 const
   SWEEP_MARK: array[TSweepOutcome] of RawUtf8 = (
-    'ok  ', 'offen', 'FEHLER');
+    'ok   ', 'open ', 'ERROR');
 
 /// everything about one template that needs no database
 // - true when nothing is wrong; Msg carries the findings either way
@@ -121,7 +121,7 @@ begin
   result := false;
   if Rec.ActionKey = '' then
   begin
-    Msg := 'Kein Action-Key.';
+    Msg := 'No action key.';
     exit;
   end;
   kind := RecordKindOf(Rec);
@@ -133,9 +133,9 @@ begin
   if (kind <> raNone) and
      (Rec.Sql <> '') then
   begin
-    Msg := 'Ein Orm-Schlüssel trägt kein eigenes Statement: es entsteht aus ' +
-      'Record-Typ, Tabelle, Schlüssel und where. Für Joins, ' +
-      'zusammengesetzte Schlüssel und Ähnliches ein Template ohne Orm.';
+    Msg := 'An Orm key carries no statement of its own: it is built from ' +
+      'record type, table, key and where. For joins, compound keys and ' +
+      'the like, use a template without Orm.';
     exit;
   end;
   { what the template says its parameters are }
@@ -145,7 +145,7 @@ begin
   if (Rec.ParamTypes <> '') and
      (length(kinds) <> want) then
   begin
-    Msg := FormatUtf8('% Typ(en) deklariert, % Parameter erwartet.',
+    Msg := FormatUtf8('% type(s) declared, % parameter(s) expected.',
       [length(kinds), want]);
     exit;
   end;
@@ -156,8 +156,8 @@ begin
      (Rec.RecordType <> '') and
      (kind in [raInsert, raUpdate]) then
   begin
-    Msg := 'Regeln nennen Parameterpositionen, ein Record-Schreibvorgang ' +
-           'hat keine.';
+    Msg := 'Rules name parameter positions, and a record write ' +
+           'has none.';
     exit;
   end;
   { the statement, when there is one }
@@ -169,24 +169,24 @@ begin
   begin
     if ResolveRecordType(Rec, rc, why) <> rbOk then
     begin
-      Msg := 'Record-Typ: ' + why;
+      Msg := 'Record type: ' + why;
       exit;
     end;
     if Rec.Sql = '' then
       if GeneratedSqlFor(Rec, sql, why) <> rbOk then
       begin
-        Msg := 'Erzeugtes SQL: ' + why;
+        Msg := 'Generated SQL: ' + why;
         exit;
       end;
   end
   else if Rec.Sql = '' then
   begin
-    Msg := 'Weder Statement noch Record-Typ.';
+    Msg := 'Neither a statement nor a record type.';
     exit;
   end;
   result := true;
   if Msg = '' then
-    Msg := FormatUtf8('% Parameter.', [want]);
+    Msg := FormatUtf8('% parameter(s).', [want]);
 end;
 
 { ---------- the half that runs ---------- }
@@ -213,7 +213,7 @@ begin
   if doc^.IsArray then
     exit(true);
   result := false;
-  Msg := 'TestBounds ist weder ein JSON-Array noch ein JSON-Objekt.';
+  Msg := 'TestBounds is neither a JSON array nor a JSON object.';
 end;
 
 { Is this template a write - the question both run paths ask, and neither
@@ -263,7 +263,7 @@ begin
   result.Outcome := swSkipped;
   if Rec.TestBounds = '' then
   begin
-    result.Message := 'kein TestBounds - geprüft, nicht ausgeführt';
+    result.Message := 'no TestBounds - checked, not run';
     exit;
   end;
   if not ReadTestBounds(Rec, values, isrec, msg) then
@@ -276,8 +276,8 @@ begin
   if write and
      not AllowWrites then
   begin
-    result.Message := 'Schreibvorgang - der Server rollt nichts zurück, ' +
-      'deshalb ausgelassen';
+    result.Message := 'write - the server rolls nothing back, ' +
+      'so it was left out';
     exit;
   end;
   if isrec then
@@ -289,8 +289,8 @@ begin
     if not (RecordKindOf(Rec) in [raInsert, raUpdate]) then
     begin
       result.Outcome := swBad;
-      result.Message := 'TestBounds ist ein Objekt, aber der Schlüssel ist ' +
-        'kein Record-Schreibvorgang.';
+      result.Message := 'TestBounds is an object, but the key is ' +
+        'not a record write.';
       exit;
     end;
   end
@@ -306,7 +306,7 @@ begin
     begin
       result.Outcome := swBad;
       result.Message := FormatUtf8(
-        'TestBounds hat % Wert(e), % erwartet (Caller-Scope: %).',
+        'TestBounds has % value(s), % expected (caller scope: %).',
         [have, want, Rec.CallerScope <> '']);
       exit;
     end;
@@ -320,7 +320,7 @@ begin
   if SqlTool = nil then
   begin
     result.Outcome := swBad;
-    result.Message := 'Keine Verbindung zum Server.';
+    result.Message := 'No connection to the server.';
     exit;
   end;
   json := '[]';
@@ -357,9 +357,9 @@ begin
     sqlNothingWritten:
       begin
         result.Outcome := swOk;
-        result.Message := FormatUtf8('% über den Server', [ToText(status)]);
+        result.Message := FormatUtf8('% through the server', [ToText(status)]);
         if row <> '' then
-          result.Message := result.Message + RawUtf8(', zurück: ') + row;
+          result.Message := result.Message + RawUtf8(', returned: ') + row;
       end;
     sqlNotAllowed:
       begin
@@ -368,18 +368,18 @@ begin
           red }
         result.Outcome := swSkipped;
         result.Ran := false;
-        result.Message := 'die Maske passt nicht zum angemeldeten Konto';
+        result.Message := 'the mask does not match the logged-in account';
       end;
     sqlNeedsLogin:
       begin
         result.Outcome := swSkipped;
         result.Ran := false;
-        result.Message := 'nicht angemeldet';
+        result.Message := 'not logged in';
       end;
   else
     begin
       result.Outcome := swBad;
-      result.Message := FormatUtf8('% über den Server', [ToText(status)]);
+      result.Message := FormatUtf8('% through the server', [ToText(status)]);
     end;
   end;
 end;
@@ -398,7 +398,7 @@ begin
   result.Outcome := swSkipped;
   if Rec.TestBounds = '' then
   begin
-    result.Message := 'kein TestBounds - geprüft, nicht ausgeführt';
+    result.Message := 'no TestBounds - checked, not run';
     exit;
   end;
   if Rec.CallerScope <> '' then
@@ -407,8 +407,8 @@ begin
       binds no caller at all. Running it here would either miss a value or
       put the wrong one in its place, and a green line for that would be a
       lie about the very template that most needs one }
-    result.Message := 'CallerScope: der Editor bindet keine Identität, ' +
-      'also hier nicht ausführbar';
+    result.Message := 'CallerScope: the editor binds no identity, ' +
+      'so it cannot run here';
     exit;
   end;
   if not ReadTestBounds(Rec, values, isrec, msg) then
@@ -431,7 +431,7 @@ begin
     begin
       result.Outcome := swBad;
       result.Message := FormatUtf8(
-        'TestBounds hat % Wert(e), % Parameter erwartet.', [have, want]);
+        'TestBounds has % value(s), % parameter(s) expected.', [have, want]);
       exit;
     end;
     { the trip a client's values make: declared types first, then the rules,
@@ -445,7 +445,7 @@ begin
     if not CheckParamRules(Rec.Rules, coerced, fault, msg) then
     begin
       result.Outcome := swBad;
-      result.Message := 'Regel: ' + msg;
+      result.Message := 'Rule: ' + msg;
       exit;
     end;
     res := RunTemplate(Db, Rec, coerced, weRollback);
@@ -486,8 +486,8 @@ begin
     if not Execute then
     begin
       result[i].Outcome := swSkipped;
-      result[i].Message := FormatUtf8('geprüft: % Nicht verbunden, also ' +
-        'nicht ausgeführt.', [msg]);
+      result[i].Message := FormatUtf8('checked: % Not connected, so ' +
+        'not run.', [msg]);
       continue;
     end;
     if Mode = smServer then
@@ -519,8 +519,8 @@ begin
     if Rows[i].Ran then
       inc(ran);
   end;
-  result := FormatUtf8('% Template(s): % ok (% ausgeführt), % offen, % mit ' +
-    'Befund.', [length(Rows), ok, ran, skipped, bad]);
+  result := FormatUtf8('% template(s): % ok (% run), % open, % with ' +
+    'findings.', [length(Rows), ok, ran, skipped, bad]);
 end;
 
 end.

@@ -62,14 +62,14 @@ Both profiles can run at the same time — their own port, their own database.
 ## Using the test client
 
 1. Run `bin/soa_sql_templates_client`.
-2. Pick the **Profil**; **Server** is filled in from it (`localhost:8890`).
-3. **Aktionen vom Server holen** — the **Aktion** list fills with what the
+2. Pick the **Profile**; **Server** is filled in from it (`localhost:8890`).
+3. **Fetch actions from server** — the **Action** list fills with what the
    server knows.
-4. Pick an **Aktion**.
+4. Pick an **Action**.
 5. Enter the **Bounds**: the parameters as a JSON array, e.g. `["Wegberg"]` or
    `[2]`. Leave it empty when there are none.
-6. **Aktion ausführen**.
-7. **Ansicht** switches between **Tabelle** and **JSON**; the messages are
+6. **Run action**.
+7. **View** switches between **Table** and **JSON**; the messages are
    below.
 
 Two details:
@@ -78,7 +78,7 @@ Two details:
   binds the identity.
 * A test of every template is not in the client, and cannot be: a client
   never sees the templates, so it would not know which values to send. It is
-  **Alle prüfen** in the editor with **über den Server ausführen** ticked —
+  **Check all** in the editor with **run through the server** ticked —
   every key from the templates file, each with its own *TestBounds*, through
   the server with login, rights and rules. See [EDITOR.md](EDITOR.md).
 
@@ -89,7 +89,7 @@ Two details:
 With the server started as `token`, everything answers `sqlNeedsLogin` until
 the client has logged in.
 
-1. Press **Anmelden…**.
+1. Press **Log in…**.
 2. Enter user and password — the demo accounts:
 
    | Account | Password | Reads | Writes |
@@ -99,7 +99,7 @@ the client has logged in.
 
 3. The title bar then shows the user and how long the token still has (300
    minutes).
-4. The same button now reads **Abmelden**.
+4. The same button now reads **Log out**.
 
 The token travels in the `Authorization` header on every call. It dies with the
 server process, so log in again after a server restart.
@@ -135,9 +135,9 @@ curl -s -X POST http://localhost:8890/sqltemplates/AppSqlTool.GetJsonFromAction 
 
 ## Putting a new template into service
 
-1. Create it in the **editor**, test it, **Speichern**.
-2. Press **Server neu laden** there — or restart the server.
-3. In the client, **Aktionen vom Server holen**; the new key is in the list.
+1. Create it in the **editor**, test it, **Save**.
+2. Press **Reload server** there — or restart the server.
+3. In the client, **Fetch actions from server**; the new key is in the list.
 
 The server does not accept a broken set and keeps the one it had. Only a broken
 file **at startup** is fatal — then it says so and does not come up.
@@ -151,6 +151,6 @@ file **at startup** is fatal — then it says so and does not come up.
 | the client says there is no server | it is not running, wrong port, or profile and port do not match |
 | everything answers `sqlNeedsLogin` | the server runs with `token` — log in, and again after a server restart |
 | everything answers `sqlNotAllowed` | the server runs with `strict` and the template has no mask, or the account does not match it |
-| a new key is unknown | saved in the editor, but *Server neu laden* was not pressed |
+| a new key is unknown | saved in the editor, but *Reload server* was not pressed |
 | profile `mssql` hangs | no route to the server (VPN, tunnel), or the Kerberos ticket expired (`kinit`) |
 | the server does not start | the templates file is missing or broken — the console names the reason |

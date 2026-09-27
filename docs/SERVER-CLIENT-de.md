@@ -61,14 +61,14 @@ Beide Profile können gleichzeitig laufen — eigener Port, eigene Datenbank.
 ## Test-Client bedienen
 
 1. `bin/soa_sql_templates_client` starten.
-2. **Profil** wählen; **Server** wird daraus vorbelegt (`localhost:8890`).
-3. **Aktionen vom Server holen** — die Liste **Aktion** füllt sich mit dem, was
+2. **Profile** wählen; **Server** wird daraus vorbelegt (`localhost:8890`).
+3. **Fetch actions from server** — die Liste **Action** füllt sich mit dem, was
    der Server kennt.
-4. **Aktion** wählen.
+4. **Action** wählen.
 5. **Bounds** eintragen: die Parameter als JSON-Array, z. B. `["Wegberg"]` oder
    `[2]`. Ohne Parameter leer lassen.
-6. **Aktion ausführen**.
-7. **Ansicht** schaltet zwischen **Tabelle** und **JSON**; darunter stehen die
+6. **Run action**.
+7. **View** schaltet zwischen **Table** und **JSON**; darunter stehen die
    Meldungen.
 
 Zwei Feinheiten:
@@ -77,8 +77,8 @@ Zwei Feinheiten:
   Identität bindet der Server.
 * Einen Test aller Templates gibt es im Client nicht, und es kann ihn nicht
   geben: ein Client sieht die Templates nie und wüsste nicht, welche Werte er
-  schicken soll. Das ist **Alle prüfen** im Editor mit Haken bei **über den
-  Server ausführen** — jeder Schlüssel aus der Templates-Datei, jeder mit
+  schicken soll. Das ist **Check all** im Editor mit Haken bei **run through
+  the server** — jeder Schlüssel aus der Templates-Datei, jeder mit
   seinen eigenen *TestBounds*, über den Server mit Anmeldung, Rechten und
   Regeln. Siehe [EDITOR-de.md](EDITOR-de.md).
 
@@ -89,7 +89,7 @@ Zwei Feinheiten:
 Läuft der Server mit `token`, antwortet er auf alles mit `sqlNeedsLogin`, bis
 sich der Client angemeldet hat.
 
-1. **Anmelden…** drücken.
+1. **Log in…** drücken.
 2. Benutzer und Passwort eingeben — Demo-Konten:
 
    | Konto | Passwort | Lesen | Schreiben |
@@ -99,7 +99,7 @@ sich der Client angemeldet hat.
 
 3. Die Titelzeile zeigt danach den angemeldeten Benutzer und die Restlaufzeit
    des Tokens (300 Minuten).
-4. Derselbe Knopf heißt danach **Abmelden**.
+4. Derselbe Knopf heißt danach **Log out**.
 
 Das Token wird bei jedem Aufruf im `Authorization`-Kopf mitgeschickt. Es stirbt
 mit dem Serverprozess — nach einem Neustart des Servers also neu anmelden.
@@ -135,9 +135,9 @@ curl -s -X POST http://localhost:8890/sqltemplates/AppSqlTool.GetJsonFromAction 
 
 ## Ein neues Template in Betrieb nehmen
 
-1. Im **Editor** anlegen, testen, **Speichern**.
-2. Im Editor **Server neu laden** — oder den Server neu starten.
-3. Im Client **Aktionen vom Server holen**; der neue Schlüssel steht in der
+1. Im **Editor** anlegen, testen, **Save**.
+2. Im Editor **Reload server** — oder den Server neu starten.
+3. Im Client **Fetch actions from server**; der neue Schlüssel steht in der
    Liste.
 
 Der Server nimmt einen kaputten Satz nicht an und behält den alten. Nur eine
@@ -152,6 +152,6 @@ kaputte Datei **beim Start** ist tödlich — dann sagt er es und läuft nicht a
 | Client meldet „kein Server" | Server läuft nicht, falscher Port, oder Profil und Port passen nicht zusammen |
 | alles antwortet `sqlNeedsLogin` | Server läuft mit `token` — anmelden; nach einem Serverneustart erneut |
 | alles antwortet `sqlNotAllowed` | Server läuft mit `strict` und das Template hat keine Maske, oder das Konto passt nicht dazu |
-| neuer Schlüssel unbekannt | im Editor gespeichert, aber nicht *Server neu laden* gedrückt |
+| neuer Schlüssel unbekannt | im Editor gespeichert, aber nicht *Reload server* gedrückt |
 | Profil `mssql` hängt | kein Weg zum Server (VPN, Tunnel) oder Kerberos-Ticket abgelaufen (`kinit`) |
 | Server startet nicht | Templates-Datei fehlt oder ist kaputt — die Konsole nennt den Grund |

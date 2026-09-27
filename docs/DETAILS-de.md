@@ -309,7 +309,7 @@ in `commonserv`, weil der Editor sich mit demselben Server verbindet und ein
 Client keinen Hostnamen kennen muss.
 
 Beide Server dürfen gleichzeitig laufen: jedes Profil hat seinen eigenen Port
-(8890 und 8891). Client und Editor haben je ein Auswahlfeld *Profil* — der
+(8890 und 8891). Client und Editor haben je ein Auswahlfeld *Profile* — der
 Client wechselt den Port und holt die Schlüsselliste über `AvailableActions`,
 der Editor wechselt Template-Datei und Zieldatenbank zusammen.
 
@@ -428,14 +428,14 @@ Reichweite. Den Editor auf eine Entwicklungsdatenbank richten.
 
 | Knopf | was er tut |
 |---|---|
-| Record-Werte eingeben… | bei einem `Orm…Add`/`Orm…Update`-Schlüssel: ein Dialog aus den Feldern seines Recordtyps — beim Update gefüllt aus der Zeile, die der Schlüssel nennt — und der entstandene Record durch die Bindung des Servers, in derselben Transaktion, deren Ende das Feld *Rollback* bestimmt |
-| Prüfen | die Prüfungen ohne Datenbank: Zahl der Parameter gegen die `?` im Statement (die in Stringliteralen zählen nicht mit), ein `where` in jedem update und delete, gleich wo das Verb steht — nach einem CTE steht es in der Mitte, und gerade dort rutscht ein fehlendes `where` am ehesten durch —, ein erkennbares erstes Schlüsselwort — danach der ganze Satz durch `TSqlTemplateRegistry.Reload`, dieselbe Prüfung, die der Server bei `ReloadTemplates` anwendet. Was der Editor annimmt, nimmt der Server an. |
-| Testen | führt aus, auf dem Pfad, den die Checkbox wählt. Steht im SQL-Feld nichts und ist ein Record-Typ genannt, gibt es einen dritten: der Satz geht mit leerem Statement nach unten und der Code des Servers erzeugt es — `SelectJson` bei einem `Orm…Retrieve…` mit den Werten seines where, `Execute` bei einem `Orm…Delete` mit dem Schlüssel. Die Art steht am Action-Key, denn einen Text, an dem man sie ablesen könnte, gibt es noch nicht. Selects erscheinen als JSON - lesbar aufbereitet oder genau so, wie es über die Leitung geht - und als generisch aufgebaute Tabelle; Schreibvorgänge werden zurückgerollt, solange das Feld *Rollback* angehakt ist — ohne Haken werden sie committet, und die Meldung sagt es. Die `?` werden gezählt, bevor ein Treiber angefasst wird: ein fehlender Wert ist bei SQLite ein NULL und keine Zeile, bei ODBC eine Ausnahme ohne abfragbaren Grund — die Zahl ist der Grund. Ein Fehlschlag trägt die Worte des Treibers selbst — den Grund, den Infra auf dem Weg nach draußen abgelegt hat, oder `Connection.LastErrorMessage` für ein Statement, das der Treiber rundheraus abgelehnt hat —, statt eines Verweises auf ein Protokoll, das man nicht sieht, und holt die Meldungen nach vorn, statt einen leeren JSON-Reiter stehen zu lassen. |
-| aus Parametern übernehmen | füllt `ParamTypes` aus den Typen, die für die Testwerte schon gewählt wurden — Deklaration und Werte können dann nicht auseinanderlaufen. Solange das Feld leer ist, füllt es sich von selbst; der Knopf überschreibt |
-| Typ aus Ergebnis erzeugen | der Record und sein Array, fertig zum Einfügen in `ClientDtos.pas` |
+| Enter record values… | bei einem `Orm…Add`/`Orm…Update`-Schlüssel: ein Dialog aus den Feldern seines Recordtyps — beim Update gefüllt aus der Zeile, die der Schlüssel nennt — und der entstandene Record durch die Bindung des Servers, in derselben Transaktion, deren Ende das Feld *Rollback* bestimmt |
+| Check | die Prüfungen ohne Datenbank: Zahl der Parameter gegen die `?` im Statement (die in Stringliteralen zählen nicht mit), ein `where` in jedem update und delete, gleich wo das Verb steht — nach einem CTE steht es in der Mitte, und gerade dort rutscht ein fehlendes `where` am ehesten durch —, ein erkennbares erstes Schlüsselwort — danach der ganze Satz durch `TSqlTemplateRegistry.Reload`, dieselbe Prüfung, die der Server bei `ReloadTemplates` anwendet. Was der Editor annimmt, nimmt der Server an. |
+| Test | führt aus, auf dem Pfad, den die Checkbox wählt. Steht im SQL-Feld nichts und ist ein Record-Typ genannt, gibt es einen dritten: der Satz geht mit leerem Statement nach unten und der Code des Servers erzeugt es — `SelectJson` bei einem `Orm…Retrieve…` mit den Werten seines where, `Execute` bei einem `Orm…Delete` mit dem Schlüssel. Die Art steht am Action-Key, denn einen Text, an dem man sie ablesen könnte, gibt es noch nicht. Selects erscheinen als JSON - lesbar aufbereitet oder genau so, wie es über die Leitung geht - und als generisch aufgebaute Tabelle; Schreibvorgänge werden zurückgerollt, solange das Feld *Rollback* angehakt ist — ohne Haken werden sie committet, und die Meldung sagt es. Die `?` werden gezählt, bevor ein Treiber angefasst wird: ein fehlender Wert ist bei SQLite ein NULL und keine Zeile, bei ODBC eine Ausnahme ohne abfragbaren Grund — die Zahl ist der Grund. Ein Fehlschlag trägt die Worte des Treibers selbst — den Grund, den Infra auf dem Weg nach draußen abgelegt hat, oder `Connection.LastErrorMessage` für ein Statement, das der Treiber rundheraus abgelehnt hat —, statt eines Verweises auf ein Protokoll, das man nicht sieht, und holt die Meldungen nach vorn, statt einen leeren JSON-Reiter stehen zu lassen. |
+| Take from parameters | füllt `ParamTypes` aus den Typen, die für die Testwerte schon gewählt wurden — Deklaration und Werte können dann nicht auseinanderlaufen. Solange das Feld leer ist, füllt es sich von selbst; der Knopf überschreibt |
+| Type from result | der Record und sein Array, fertig zum Einfügen in `ClientDtos.pas` |
 | In die Zwischenablage | dieser Quelltext, in der Zwischenablage |
-| Speichern / Löschen | ein Template in `templates.sqlite`, und gleich danach `templates.sql` neu — die lesbare Hälfte einer Binärdatei kann nicht zurückfallen, wenn sich niemand an sie erinnern muss. Einen Export-Knopf gibt es nicht: neben *Speichern* liest er sich wie ein Schritt, den *Speichern* nicht tut |
-| Server neu laden | `ReloadTemplates` auf einem laufenden Server — der neue Key antwortet ohne Neustart |
+| Save / Delete | ein Template in `templates.sqlite`, und gleich danach `templates.sql` neu — die lesbare Hälfte einer Binärdatei kann nicht zurückfallen, wenn sich niemand an sie erinnern muss. Einen Export-Knopf gibt es nicht: neben *Save* liest er sich wie ein Schritt, den *Save* nicht tut |
+| Reload server | `ReloadTemplates` auf einem laufenden Server — der neue Key antwortet ohne Neustart |
 
 ### Parameter haben angegebene Typen
 
@@ -463,7 +463,7 @@ eine Fiktion.
 Neben der Liste steht das JSON, zu dem diese Werte werden. Das ist es, was ein
 Client tatsächlich auf die Leitung gibt, und es lohnt den Blick, denn JSON
 kennt nur null, bool, Zahl und Text. Ein `[date]` reist als Zeichenkette und
-wird drüben als Zeichenkette gebunden — deshalb liest „Prüfen" das JSON mit
+wird drüben als Zeichenkette gebunden — deshalb liest „Check" das JSON mit
 `JSON_FAST_FLOAT` wieder ein, also mit dem, was `TInterfaceFactory` für ein
 Variant-Argument einstellt, und nennt jeden Parameter, dessen Typ sich
 unterwegs ändern würde. Das ist die Auswertung des Servers selbst, keine
@@ -477,7 +477,7 @@ die still danebengeht —, würde der Editor ihn getreu nachvollziehen und Erfol
 melden. Nichts an einem geteilten Pfad kann einen Fehler im geteilten Pfad
 zeigen.
 
-Dafür ist die Checkbox **Gegenprobe** da. Sie schreibt die Werte als
+Dafür ist die Checkbox **Cross-check** da. Sie schreibt die Werte als
 SQL-Literale in die Anweisung und bindet nichts, sodass die beiden Läufe an
 keiner Stelle denselben Code benutzen, an der der Fehler sitzen könnte.
 Gleiches Ergebnis heißt: die Bindung hat geliefert, was das Literal sagt.
@@ -695,8 +695,8 @@ Regeln über Feldnamen sind der naheliegende nächste Schritt.
 
 ### Den ganzen Satz auf einmal prüfen
 
-„Prüfen" beantwortet die Frage für das Template, das der Bearbeiter vor sich
-hat. „Alle prüfen" beantwortet sie für die Datei, und das ist die Frage vor
+„Check" beantwortet die Frage für das Template, das der Bearbeiter vor sich
+hat. „Check all" beantwortet sie für die Datei, und das ist die Frage vor
 einem Commit: nach einer umbenannten Spalte, einem geänderten Record-Typ oder
 einer neuen Rechtemaske — **welcher** der neunundzwanzig Schlüssel geht nicht
 mehr?
@@ -711,7 +711,7 @@ eines Records und geht den Record-Weg — ein erzeugtes Insert wird also genauso
 getestet wie ein gewöhnliches Select, aus einer Spalte und ohne eine Zeile
 Testcode.
 
-Ein Template ohne `TestBounds` gilt als **offen**, nie als bestanden. Ebenso
+Ein Template ohne `TestBounds` gilt als **open**, nie als bestanden. Ebenso
 ein gescoptes: der Server bindet den Wert des Aufrufers ans letzte `?`, dieses
 Werkzeug bindet gar keinen — eine grüne Zeile wäre dort eine Lüge über genau
 das Template, das eine am nötigsten hat.
@@ -732,7 +732,7 @@ Auf dem Server liest `TestBounds` niemand. Es wird in `TSqlRec` mitgeführt wie
 jede andere Spalte und dort ignoriert — genau das macht einen generischen
 Testlauf ohne eine Zeile Servercode möglich.
 
-Mit angehaktem *über den Server ausführen* nimmt derselbe Sammellauf den Weg
+Mit angehaktem *run through the server* nimmt derselbe Sammellauf den Weg
 über den Server, und die Zeile, die immer offen war, schließt sich: ein
 gescoptes Template **läuft**, weil der Server die Identität bindet —
 `GetMeineRechnungen` antwortet dort `sqlOk`, während der direkte Lauf es nur
@@ -846,7 +846,7 @@ Ein Schalter zum Ausprobieren, keine Authentifizierung — er behauptet, jeder
 anonyme Aufrufer sei dieser eine Benutzer, und sagt das beim Start auch braun
 auf der Konsole.
 
-Der Editor kann das nicht zeigen: sein „Testen" führt das Statement direkt auf
+Der Editor kann das nicht zeigen: sein „Test" führt das Statement direkt auf
 der Verbindung aus, nicht über die Domänenschicht. `CallerScope` greift dort
 also nicht, und das letzte `?` trägt den eingetippten Wert. Bei gesetztem
 Caller-Scope schreibt der Editor das jetzt vor die Statusmeldung — ein grüner
@@ -960,7 +960,7 @@ Das ist mORMots eigene Stelle für *„dein eigener Header, etwa ein JWT als
 Bearer"*, und danach trägt **jeder** Aufruf dieser Verbindung das Token, ohne
 dass eine einzige Aufrufstelle davon weiß.
 
-Im Fenster gibt es einen Knopf *Anmelden…*, der zu *Abmelden* wird, und der
+Im Fenster gibt es einen Knopf *Log in…*, der zu *Log out* wird, und der
 Anmeldestand steht im Titel — Name, Masken und Restminuten, aus `WhoAmI`, also
 vom Server und nicht aus dem Token geraten. Kommt bei einem Aufruf
 `sqlNeedsLogin` zurück, fragt der Client einmal nach und wiederholt denselben
@@ -972,7 +972,7 @@ Das Anmeldefenster ist zur Laufzeit gebaut (`u_logindialog` in `src/ui`), ohne
 LFM: es sind drei Steuerelemente, und eine Formulardatei dafür wäre mehr zu
 pflegen als zu gewinnen. Der Editor nimmt dieselbe Unit — zwei Programme, die
 nach denselben zwei Feldern fragen, sollen nicht zwei Fenster pflegen. Dort
-bedient sie *Server neu laden*: kommt `sqlNeedsLogin`, wird einmal gefragt und
+bedient sie *Reload server*: kommt `sqlNeedsLogin`, wird einmal gefragt und
 der Aufruf wiederholt.
 
 Ein Reload ist administrativ, und seit ein Token das sagen kann, verlangt
@@ -983,13 +983,13 @@ als am Lesen. Mit `token strict` gemessen: ohne Token `sqlNeedsLogin`, als
 
 ### Testen über den Server
 
-Das eigene *Testen* des Editors führt das Statement direkt auf seiner
+Das eigene *Test* des Editors führt das Statement direkt auf seiner
 Datenbankverbindung aus. Genau das macht es an einem Entwurf brauchbar — und
 genau deshalb kann es die Hälfte der Fragen nicht beantworten, um die es in
 diesem Dokument geht: Rechtemasken, `CallerScope` und die Regeln liegen in der
 Domänenschicht, und dieser Lauf geht daran vorbei.
 
-Das Häkchen *über den Server ausführen* dreht den Lauf um: derselbe Knopf ruft
+Das Häkchen *run through the server* dreht den Lauf um: derselbe Knopf ruft
 `GetJsonFromAction` bzw. `WriteDataForAction` wie jeder Client, und die Antwort
 ist damit die echte — mit Maske, Scope und Regeln. Kommt `sqlNeedsLogin`, wird
 gefragt und der Aufruf wiederholt.
@@ -1006,7 +1006,7 @@ Aufruf, der ihm nicht gehört, nicht halten — deshalb wird ein Schreibvorgang
 vorher noch einmal bestätigt.
 
 Ein Record-Schreibvorgang nimmt denselben Weg, über den Dialog, über den er
-immer schon lief. *Record-Werte eingeben…* erzeugt das JSON eines Records, und
+immer schon lief. *Enter record values…* erzeugt das JSON eines Records, und
 mit gesetztem Häkchen wird dieses JSON an `WriteRecordForAction` geschickt
 statt hier ausgeführt — Typ und Statement entstehen im Server, weshalb das Feld
 für das ausgeführte SQL leer bleibt. Es bleibt ehrlich leer: das Statement ist
@@ -1222,7 +1222,7 @@ Domänenschicht hängt bei `CallerScope` ihre eigene Bedingung mit `and` an, und
 die halbe Tabelle am Scoping vorbei. Wie viele Werte ein solches Template
 erwartet, weiß der Server, bevor das Statement existiert: `ExpectedParamCount`
 zählt die `?` des where, so wie es sonst die des Statements zählt, und
-*Prüfen* im Editor zählt genauso wie der Server.
+*Check* im Editor zählt genauso wie der Server.
 
 Ein Retrieve oder ein Delete trägt nie ein eigenes Statement. Ein Select, das
 einen Join braucht, eine Spalte, die der Record nicht hat, ein group by, ist
@@ -1440,7 +1440,7 @@ je Dienst ist ein JWT, das eine Gruppenliste trägt, der passendere Weg.
 **Sanity-Regeln zur Laufzeit.** Die Zahl der `?` gegen die Zahl der Bounds,
 ein verpflichtendes `where` bei Update und Delete. Der Server tut das nicht,
 denn das prüft man billiger beim Verfassen eines Templates als bei jeder
-Anfrage — und genau dort sitzt es jetzt, hinter dem Knopf „Prüfen" des
+Anfrage — und genau dort sitzt es jetzt, hinter dem Knopf „Check" des
 Editors. Wertebereiche je Schlüssel gehörten weiterhin auf den Server und
 wären ein Feld auf `TSqlRec`.
 
@@ -1477,7 +1477,7 @@ zum Lesen geöffnet und wieder geschlossen, sodass ein laufender Server, ein
 Viewer und der Editor sie gleichzeitig nutzen können.
 
 Der Editor kann ein Record-Template jetzt auch testen, ohne die Zusage zu
-brechen, dass dieses Werkzeug nie committet. *Record-Werte eingeben…* löst den
+brechen, dass dieses Werkzeug nie committet. *Enter record values…* löst den
 Recordtyp so auf, wie der Server ihn auflöst, baut aus den Feldern, die dabei
 herauskommen, einen Dialog — eine Zeile je Feld, daneben der Typ, als der der
 Wert gebunden wird — und liefert das JSON zurück, das ein Client schicken
@@ -1513,7 +1513,7 @@ Was eingegeben wurde, bleibt zweimal erhalten. Der Dialog merkt sich das
 Record je Schlüssel für die Sitzung und öffnet beim nächsten Mal darauf, statt
 auf leeren Feldern — beim Update erst, wenn keine Zeile aus der Datenbank kam.
 Und das JSON steht danach unter *so würde es reisen*: für ein Record-Template
-ist dieses Objekt genau das, was ein Client schickt, und *JSON als TestBounds*
+ist dieses Objekt genau das, was ein Client schickt, und *JSON as TestBounds*
 schreibt es mit einem Druck in die Spalte, aus der der Sammellauf und der Weg
 über den Server es später wieder nehmen.
 
@@ -1525,8 +1525,8 @@ Zeile, die er zurückbekommen hat, im Reiter Tabelle, so wie ein Select seine
 Zeilen zeigt.
 
 Das sagt, woher die Werte kommen, und nicht, dass so ein Template nicht
-testbar wäre. *Testen* sucht den Record deshalb dort, wo das Fenster ihn zeigt:
-erst *geht als JSON raus*, dann die letzte Eingabe im Dialog zu diesem
+testbar wäre. *Test* sucht den Record deshalb dort, wo das Fenster ihn zeigt:
+erst *sent as JSON*, dann die letzte Eingabe im Dialog zu diesem
 Schlüssel, dann die Spalte `TestBounds`. Was es findet, läuft denselben Weg,
 den der Dialog nimmt — mit gesetztem Häkchen über den Server, ohne über die
 eigene Verbindung. Ein Array in einem der drei Felder zählt nicht: ein

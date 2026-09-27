@@ -23,7 +23,7 @@ object FormMain: TFormMain
       Height = 16
       Top = 6
       Width = 40
-      Caption = 'Profil:'
+      Caption = 'Profile:'
       ParentColor = False
     end
     object ComboProfile: TComboBox
@@ -57,7 +57,7 @@ object FormMain: TFormMain
       Height = 16
       Top = 36
       Width = 46
-      Caption = 'Aktion:'
+      Caption = 'Action:'
       ParentColor = False
     end
     object ComboAction: TComboBox
@@ -89,7 +89,7 @@ object FormMain: TFormMain
       Height = 24
       Top = 31
       Width = 190
-      Caption = 'Aktion ausführen'
+      Caption = 'Run action'
       TabOrder = 5
       OnClick = ButtonRunClick
     end
@@ -98,7 +98,7 @@ object FormMain: TFormMain
       Height = 16
       Top = 68
       Width = 49
-      Caption = 'Ansicht:'
+      Caption = 'View:'
       ParentColor = False
     end
     object SpeedTable: TSpeedButton
@@ -106,7 +106,7 @@ object FormMain: TFormMain
       Height = 24
       Top = 64
       Width = 90
-      Caption = 'Tabelle'
+      Caption = 'Table'
       Down = True
       GroupIndex = 1
       OnClick = SpeedViewClick
@@ -116,7 +116,7 @@ object FormMain: TFormMain
       Height = 24
       Top = 61
       Width = 190
-      Caption = 'Anmelden...'
+      Caption = 'Log in...'
       TabOrder = 7
       OnClick = ButtonLoginClick
     end
@@ -125,7 +125,7 @@ object FormMain: TFormMain
       Height = 24
       Top = 62
       Width = 198
-      Caption = 'Aktionen vom Server holen'
+      Caption = 'Fetch actions from server'
       TabOrder = 6
       OnClick = ButtonActionsClick
     end

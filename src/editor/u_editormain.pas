@@ -451,12 +451,12 @@ procedure TFormEditor.DropConnection;
 begin
   fDb.Disconnect;
   ShowConnection;
-  ButtonConnect.Caption := 'Verbinden';
+  ButtonConnect.Caption := 'Connect';
   if fDb.LastCleanupError <> '' then
     { FormatUtf8 and not a "+": a literal with an umlaut concatenated onto a
       string is folded by the compiler into the default ansi codepage, and one
       Latin-1 byte in a Cocoa control ends the process - see SafeText }
-    Log(FormatUtf8('Beim Schließen der Verbindung: %', [fDb.LastCleanupError]));
+    Log(FormatUtf8('While closing the connection: %', [fDb.LastCleanupError]));
 end;
 
 { What the LCL would otherwise do with it - and what it does depends on where
@@ -472,14 +472,14 @@ begin
   if advice <> '' then
     msg := msg + #13#10 + advice;
   try
-    Log('Unerwartete Ausnahme: ' + msg);
+    Log('Unexpected exception: ' + msg);
     PagesResult.ActivePage := TabLog;
-    Say('Unerwartete Ausnahme - der Grund steht im Log.', stBad);
+    Say('Unexpected exception - the reason is in the log.', stBad);
   except
     { the form may be half gone by now: the box below is what matters }
     ;
   end;
-  MessageDlg('Unerwartete Ausnahme', U(msg), mtError, [mbOK], 0);
+  MessageDlg('Unexpected exception', U(msg), mtError, [mbOK], 0);
 end;
 
 { Text on its way into a Cocoa control, made safe first.
@@ -547,9 +547,9 @@ begin
   if fDb.Connected then
     title := EDITOR_TITLE + ' - ' + U(fDb.ShortDescription)
   else
-    title := EDITOR_TITLE + ' - nicht verbunden';
+    title := EDITOR_TITLE + ' - not connected';
   if not cbRollback.Checked then
-    title := U(FormatUtf8('% - ROLLBACK AUS, Schreibvorgänge bleiben stehen',
+    title := U(FormatUtf8('% - ROLLBACK OFF, writes stay',
       [RawUtf8(title)]));
   { the title bar is a Cocoa string like any other, and it is the one that is
     set while nothing is being logged - so it goes through the same guard }
@@ -574,10 +574,10 @@ begin
     nothing can cover it up - the same place the connection is named }
   ShowConnection;
   if cbRollback.Checked then
-    Log('Rollback an: ein Testlauf wird zurückgerollt, wie immer.')
+    Log('Rollback on: a test run is rolled back, as always.')
   else
-    Log('Rollback AUS: ein Schreib-Statement, das durchläuft, bleibt in ' +
-        'der Datenbank stehen. Gilt für Testen und für Record-Werte.');
+    Log('Rollback OFF: a write statement that succeeds stays in ' +
+        'the database. Applies to Test and to record values.');
 end;
 
 procedure TFormEditor.Say(const Msg: RawUtf8; Level: TStatusLevel);
@@ -646,8 +646,8 @@ var
 begin
   dlg := TOpenDialog.Create(nil);
   try
-    dlg.Title := 'SQLite-Datei wählen';
-    dlg.Filter := 'SQLite|*.sqlite;*.db;*.sqlite3|Alle Dateien|*';
+    dlg.Title := 'Choose SQLite file';
+    dlg.Filter := 'SQLite|*.sqlite;*.db;*.sqlite3|All files|*';
     dlg.FileName := Current;
     if Current <> '' then
       dlg.InitialDir := ExtractFilePath(Current);
@@ -737,12 +737,12 @@ begin
   if length(kinds) <> wanted then
   begin
     if SqlModeNow = sbWhere then
-      Msg := FormatUtf8('Typen nennt % Eintrag/Einträge, das where hat % ?. ' +
-        'Typen anpassen - oder leeren, wenn das where keine ? hat.',
+      Msg := FormatUtf8('Types names % entry/entries, the where has % ?. ' +
+        'Adjust Types - or clear it if the where has no ?.',
         [length(kinds), wanted])
     else
-      Msg := FormatUtf8('Typen nennt % Eintrag/Einträge, das Statement hat ' +
-        '% ?. Typen anpassen - oder leeren, wenn es keine ? hat.',
+      Msg := FormatUtf8('Types names % entry/entries, the statement has ' +
+        '% ?. Adjust Types - or clear it if it has no ?.',
         [length(kinds), wanted]);
     exit(false);
   end;
@@ -838,7 +838,7 @@ begin
   if fDb.Connect(TEditorEngine(ComboEngine.ItemIndex),
        RawUtf8(Trim(EditTarget.Text)), RawUtf8(Trim(EditUser.Text)),
        RawUtf8(EditPassword.Text), msg) then
-    ButtonConnect.Caption := 'Trennen';
+    ButtonConnect.Caption := 'Disconnect';
   ShowConnection;
   Log(msg);
   PagesResult.ActivePage := TabLog;
@@ -1002,11 +1002,11 @@ begin
     { a row from before Orm keys lost their statements: shown, so what it
       said can be carried over - a where clause into the box, a table name
       into Tabelle - and not kept: saving drops it }
-    Log(FormatUtf8('% trägt noch ein eigenes Statement, das nicht mehr ' +
-      'gilt:'#13#10'  %'#13#10'Ein where gehört ins Feld oben, eine andere ' +
-      'Tabelle ins Feld Tabelle. Speichern verwirft das Statement.',
+    Log(FormatUtf8('% still carries a statement of its own, which no longer ' +
+      'applies:'#13#10'  %'#13#10'A where belongs in the box above, another ' +
+      'table in the Table field. Save discards the statement.',
       [fRecs[i].ActionKey, fRecs[i].Sql]));
-    Say('Altes Statement im Log - siehe Meldungen.', stHint);
+    Say('Old statement in the log - see Messages.', stHint);
   end;
   EditParamTypes.Text := U(fRecs[i].ParamTypes);
   MemoRecordDecl.Lines.Text := SafeText(fRecs[i].RecordDecl);
@@ -1097,14 +1097,14 @@ begin
   begin
     if RecordKindOf(rec) in [raRetrieve, raDelete] then
       if length(bounds) = ExpectedParamCount(rec) then
-        Step(true, FormatUtf8('% Parameter, % erwartet.',
+        Step(true, FormatUtf8('% parameter(s), % expected.',
           [length(bounds), ExpectedParamCount(rec)]))
       else if RecordKindOf(rec) = raRetrieve then
-        Step(false, FormatUtf8('Das where hat % ?, in der Parameterliste ' +
-          'stehen % Werte.', [ExpectedParamCount(rec), length(bounds)]))
+        Step(false, FormatUtf8('The where has % ?, the parameter list ' +
+          'holds % value(s).', [ExpectedParamCount(rec), length(bounds)]))
       else
-        Step(false, FormatUtf8('Ein Delete nimmt genau einen Wert, den ' +
-          'Schlüssel - in der Parameterliste stehen %.', [length(bounds)]));
+        Step(false, FormatUtf8('A Delete takes exactly one value, the ' +
+          'key - the parameter list holds %.', [length(bounds)]));
   end
   else
     Step(StaticCheck(RawUtf8(Trim(MemoSql.Lines.Text)), length(bounds), msg),
@@ -1140,7 +1140,7 @@ begin
   end;
   if not fListLoaded then
     Step(false, 'The template list was never loaded, so the set below is ' +
-      'this one entry alone. Press "Liste laden" to check against what is ' +
+      'this one entry alone. Press "Load list" to check against what is ' +
       'really in the file.');
   probe := copy(fRecs);
   found := -1;
@@ -1166,7 +1166,7 @@ begin
   if firstBad <> '' then
     Say(firstBad, stBad)
   else if firstHint <> '' then
-    Say('Hinweis: ' + firstHint, stHint)
+    Say('Note: ' + firstHint, stHint)
   else
     Say('Checked, nothing to report.', stOk);
 end;
@@ -1192,10 +1192,10 @@ var
   secs, open: integer;
 begin
   PagesResult.ActivePage := TabLog;
-  Log('--- alle prüfen ---');
+  Log('--- check all ---');
   if not fListLoaded then
   begin
-    Say('Die Liste ist nicht geladen - erst "Liste laden".', stBad);
+    Say('The list is not loaded - "Load list" first.', stBad);
     exit;
   end;
   if cbViaServer.Checked then
@@ -1204,23 +1204,23 @@ begin
       masks, the caller's identity and the rules all apply, and the one row
       that was always "offen" (a scoped template) finally runs }
     writes := HasServerWrites(fRecs) and
-      (MessageDlg('Alle prüfen über den Server',
-        'Der Server rollt nichts zurück. Sollen die Schreibvorgänge ' +
-        'wirklich ausgeführt werden?'#13#10 +
-        'Nein lässt sie aus und prüft nur die Lesezugriffe.',
+      (MessageDlg('Check all through the server',
+        'The server rolls nothing back. Should the writes really ' +
+        'be run?'#13#10 +
+        'No leaves them out and checks the reads only.',
         mtWarning, [mbYes, mbNo], 0) = mrYes);
     if not ServerConnect then
       exit;
     try
-      Log('Über den Server: mit Rechtemaske, Caller-Scope und Regeln.');
+      Log('Through the server: with rights mask, caller scope and rules.');
       if not writes then
-        Log('Schreibvorgänge werden ausgelassen - der Server rollt nichts ' +
-            'zurück.');
+        Log('Writes are left out - the server rolls nothing ' +
+            'back.');
       { one login for the whole sweep, asked before the first refusal }
       if AuthTool.WhoAmI(who, reads, wr, secs) = sqlNeedsLogin then
         if not ServerLogin then
         begin
-          Say('Ohne Anmeldung antwortet der Server auf nichts.', stBad);
+          Say('Without a login the server answers nothing.', stBad);
           exit;
         end;
       Screen.Cursor := crHourGlass;
@@ -1238,10 +1238,10 @@ begin
     execute := (fDb <> nil) and
                fDb.Connected;
     if execute then
-      Log('Verbunden: Templates mit TestBounds werden ausgeführt, ' +
-          'Schreibvorgänge in einer Transaktion, die zurückgerollt wird.')
+      Log('Connected: templates with TestBounds are run, ' +
+          'writes in a transaction that is rolled back.')
     else
-      Log('Nicht verbunden: geprüft wird, ausgeführt nichts.');
+      Log('Not connected: everything is checked, nothing is run.');
     Screen.Cursor := crHourGlass;
     try
       rows := SweepTemplates(fDb, fRecs, execute);
@@ -1264,7 +1264,7 @@ begin
   summary := SweepSummary(rows);
   Log(summary);
   if firstBad <> '' then
-    Say(summary + ' Zuerst: ' + firstBad, stBad)
+    Say(summary + ' First: ' + firstBad, stBad)
   else if open > 0 then
     { nothing is wrong, and nothing pretends the set is proven either }
     Say(summary, stHint)
@@ -1280,7 +1280,7 @@ end;
 procedure TFormEditor.ButtonTestBoundsFromJsonClick(Sender: TObject);
 begin
   EditTestBounds.Text := EditBoundsJson.Text;
-  Say('TestBounds übernommen - "Speichern" schreibt sie in die Datei.', stOk);
+  Say('TestBounds taken over - "Save" writes them to the file.', stOk);
 end;
 
 { The Rules column, read and run exactly as the domain layer does it.
@@ -1302,14 +1302,14 @@ begin
   Msg := '';
   if Rec.Rules = '' then
   begin
-    Msg := 'Keine Regeln - geprüft wird nur der Typ der Parameter.';
+    Msg := 'No rules - only the parameter types are checked.';
     exit(true);
   end;
   if (Rec.RecordType <> '') and
      (RecordKindOf(Rec) in [raInsert, raUpdate]) then
   begin
-    Msg := 'Regeln nennen Parameterpositionen, ein Record-Schreibvorgang ' +
-           'hat keine. Der Server lehnt eine solche Vorlage ab.';
+    Msg := 'Rules name parameter positions, and a record write ' +
+           'has none. The server refuses such a template.';
     exit(false);
   end;
   if not ParseParamRules(Rec.Rules, rules, Msg) then
@@ -1326,16 +1326,16 @@ begin
     arr.AddFrom(v); { the Variant overload is the one both mORMot lines have }
     arr.AddItem(Null);
     v := variant(arr);
-    scoped := ' Der gescopte letzte Parameter wurde als null geprüft.';
+    scoped := ' The scoped last parameter was checked as null.';
   end;
   result := CheckParamRules(Rec.Rules, v, fault, Msg);
   if result then
-    Msg := FormatUtf8('% Regel(n) geprüft, alle erfüllt.%',
+    Msg := FormatUtf8('% rule(s) checked, all met.%',
       [length(rules), scoped])
   else if fault = rfTemplate then
-    Msg := 'Regel-Spalte: ' + Msg + ' Der Server antwortet darauf sqlFailed.'
+    Msg := 'Rules column: ' + Msg + ' The server answers this with sqlFailed.'
   else
-    Msg := 'Regel verletzt: ' + Msg + ' Der Server antwortet sqlBadParams.';
+    Msg := 'Rule violated: ' + Msg + ' The server answers sqlBadParams.';
 end;
 
 { The record side of a template, through the very functions the server uses.
@@ -1359,11 +1359,11 @@ begin
   begin
     if rec.RecordDecl <> '' then
     begin
-      Msg := 'Record-Felder ohne Record-Typ: unter welchem Namen sollen ' +
-             'sie registriert werden? Der Server lehnt den Satz ab.';
+      Msg := 'Record fields without a record type: under which name should ' +
+             'they be registered? The server refuses the set.';
       exit(false);
     end;
-    Msg := 'Kein Record-Typ - eine gewöhnliche Abfrage mit ? und Parametern.';
+    Msg := 'No record type - an ordinary query with ? and parameters.';
     exit(true);
   end;
   result := ResolveRecordType(rec, rc, Msg) = rbOk;
@@ -1379,13 +1379,13 @@ begin
         scope here }
       RawUtf8(mormot.core.rtti.ToText(rc.Props.List[i].Value.Parser)^);
   end;
-  Msg := FormatUtf8('%: % Feld(er) - %', [rc.Name, rc.Props.Count, fields]);
+  Msg := FormatUtf8('%: % field(s) - %', [rc.Name, rc.Props.Count, fields]);
   if rec.Sql <> '' then
     exit; // a written statement with :Names - there is nothing to generate
   Log(Msg);
   result := GeneratedSqlFor(rec, sql, Msg) = rbOk;
   if result then
-    Msg := 'erzeugtes SQL: ' + sql;
+    Msg := 'generated SQL: ' + sql;
 end;
 
 { The table this record type would need - composed, not run.
@@ -1412,8 +1412,8 @@ begin
   rec := CurrentRec;
   if rec.RecordType = '' then
   begin
-    Say('Kein Record-Typ: die Spalten werden aus den Feldern des Records ' +
-      'beschrieben, und ohne Record gibt es keine.', stBad);
+    Say('No record type: the columns are described from the fields of the ' +
+      'record, and without a record there are none.', stBad);
     exit;
   end;
   { the box is filled in FormCreate and set again with every profile, so
@@ -1430,12 +1430,12 @@ begin
   end;
   Log(msg);
   Log(sql);
-  Log('Was hier NICHT steht, sagt der Record-Typ auch nicht: not null, ' +
-      'Vorgabewerte, Indizes, Fremdschlüssel. Die schreibst du dazu, bevor ' +
-      'du das Statement ausführst.');
+  Log('What is NOT here, the record type does not say either: not null, ' +
+      'defaults, indexes, foreign keys. Add them yourself before ' +
+      'you run the statement.');
   Clipboard.AsText := SafeText(sql);
-  Say('Create-Table steht im Log und auf der Zwischenablage. Ausgeführt ' +
-    'wird nichts - die Tabelle legst du selbst an.', stOk);
+  Say('CREATE TABLE is in the log and on the clipboard. Nothing is ' +
+    'run - you create the table yourself.', stOk);
 end;
 
 procedure TFormEditor.ButtonTestClick(Sender: TObject);
@@ -1518,8 +1518,8 @@ begin
       the server. This is how a retrieve and a delete are tested - they carry
       no statement of their own, so there was nothing to test before. }
     if CheckInline.Checked then
-      Log('Gegenprobe übersprungen: sie setzt Werte in ein Statement ein, ' +
-          'und hier gibt es keines - es entsteht erst beim Ausführen.');
+      Log('Cross-check skipped: it puts values into a statement, ' +
+          'and there is none here - it is only built when run.');
     ShowResult(RunGenerated(fDb, rec, bounds, WriteEnding));
     exit;
   end;
@@ -1659,8 +1659,8 @@ begin
     end;
   end
   else if rec.Sql <> '' then
-    LabelSqlPreview.Caption := U(FormatUtf8('Orm %: trägt ein eigenes ' +
-      'Statement - das lehnt der Server ab', [KIND_TEXT[kind]]))
+    LabelSqlPreview.Caption := U(FormatUtf8('Orm %: carries its own ' +
+      'statement - the server refuses that', [KIND_TEXT[kind]]))
   else
   begin
     { the server's own generator, so what is shown is what will run - and
@@ -1672,7 +1672,7 @@ begin
         if kind = raInsert then
           { what the Add answers with: the text shown is the plain insert,
             the database's returning clause is added at run time }
-          msg := msg + RawUtf8('  (liefert die Zeile zurück)');
+          msg := msg + RawUtf8('  (returns the row)');
       end
       else
         msg := FormatUtf8('Orm %: %', [KIND_TEXT[kind], msg]);
@@ -1747,7 +1747,7 @@ begin
   end;
   was := decl;
   EditParamTypes.Text := U(RawUtf8ArrayToCsv(have, ','));
-  Log(FormatUtf8('Typen dem where angepasst: "%" -> "%" (% ?).',
+  Log(FormatUtf8('Types matched to the where: "%" -> "%" (% ?).',
     [was, RawUtf8ArrayToCsv(have, ','), want]));
 end;
 
@@ -1781,7 +1781,7 @@ begin
       doc.AddItem(Null);
   was := bounds;
   EditTestBounds.Text := U(doc.ToJson);
-  Log(FormatUtf8('TestBounds dem where angepasst: % -> %', [was, doc.ToJson]));
+  Log(FormatUtf8('TestBounds matched to the where: % -> %', [was, doc.ToJson]));
 end;
 
 function TFormEditor.TestBoundsProblem(const Rec: TSqlRec): RawUtf8;
@@ -1796,18 +1796,18 @@ begin
     exit; // nothing to run, or a record that is not a value list
   v := _Json(Rec.TestBounds, JSON_FAST_FLOAT);
   if not _Safe(v)^.IsArray then
-    exit(RawUtf8('TestBounds ist kein JSON-Array.'));
+    exit(RawUtf8('TestBounds is not a JSON array.'));
   { a scoped template leaves its last ? to the server, as the sweep does }
   want := ExpectedParamCount(Rec);
   if Rec.CallerScope <> '' then
     dec(want);
   if _Safe(v)^.Count <> want then
-    exit(FormatUtf8('TestBounds hat % Wert(e), erwartet werden %.',
+    exit(FormatUtf8('TestBounds has % value(s), % are expected.',
       [_Safe(v)^.Count, want]));
   for i := 0 to _Safe(v)^.Count - 1 do
     if VarIsNull(_Safe(v)^.Values[i]) then
-      exit(FormatUtf8('TestBounds: an Stelle % steht null - einen echten ' +
-        'Wert eintragen.', [i + 1]));
+      exit(FormatUtf8('TestBounds: position % is null - enter a real ' +
+        'value.', [i + 1]));
 end;
 
 procedure TFormEditor.FillGrid(const Json: RawUtf8);
@@ -1880,9 +1880,9 @@ begin
     a half-written entry may be worth keeping }
   msg := TestBoundsProblem(CurrentRec);
   if msg <> '' then
-    if MessageDlg('Speichern',
-         U(msg + RawUtf8(#13#10'"Alle prüfen" würde diesen Eintrag damit ' +
-         'falsch aufrufen. Trotzdem speichern?')), mtWarning, [mbYes, mbNo], 0)
+    if MessageDlg('Save',
+         U(msg + RawUtf8(#13#10'"Check all" would call this entry wrongly ' +
+         'with them. Save anyway?')), mtWarning, [mbYes, mbNo], 0)
          <> mrYes then
     begin
       Say(msg, stBad);
@@ -1911,8 +1911,8 @@ begin
   key := Trim(EditKey.Text);
   if key = '' then
     exit;
-  if MessageDlg('Löschen',
-       U(FormatUtf8('Template "%" aus % löschen?',
+  if MessageDlg('Delete',
+       U(FormatUtf8('Delete template "%" from %?',
          [RawUtf8(key), RawUtf8(TemplateFile)])), mtConfirmation,
        [mbYes, mbNo], 0) <> mrYes then
     exit;
@@ -1990,8 +1990,8 @@ begin
   rec := CurrentRec;
   if rec.RecordType = '' then
   begin
-    Say('Kein Record-Typ: dieser Schlüssel nimmt eine Werteliste, keinen ' +
-      'Record.', stBad);
+    Say('No record type: this key takes a list of values, not a ' +
+      'record.', stBad);
     exit;
   end;
   if not (RecordKindOf(rec) in [raInsert, raUpdate]) then
@@ -1999,8 +1999,8 @@ begin
     { a retrieve sends the values of its where clause, a delete the key -
       the values below the statement are the ordinary test values, not a
       record }
-    Say(FormatUtf8('% nimmt keinen Record: Add und Update tun das. ' +
-      'Retrieve bekommt die Werte seines where, Delete den Schlüssel.',
+    Say(FormatUtf8('% takes no record: Add and Update do. ' +
+      'Retrieve gets the values of its where, Delete the key.',
       [rec.ActionKey]), stBad);
     exit;
   end;
@@ -2019,12 +2019,12 @@ begin
       than guessed, and left empty it opens on defaults - which is what an
       update of a row one knows by heart wants. }
     key := '';
-    if InputQuery('Zeile laden',
-         U(FormatUtf8('Wert von % - leer lassen für leere Felder:',
+    if InputQuery('Load row',
+         U(FormatUtf8('Value of % - leave empty for empty fields:',
            [KeyFieldOf(rec)])), key) and
        (Trim(key) <> '') then
       if LoadRecordRow(fDb, rec, RawUtf8(Trim(key)), row, msg) then
-        Log('Vorbelegt aus: ' + msg)
+        Log('Preset from: ' + msg)
       else
       begin
         { not found, not connected, nothing readable - all three are reasons
@@ -2041,7 +2041,7 @@ begin
       given no key - and the same record was entered before in this session.
       Retyping it is the thing the dialog exists to spare }
     row := _Json(remembered, JSON_FAST_FLOAT);
-    Log('Vorbelegt aus der letzten Eingabe zu diesem Schlüssel.');
+    Log('Preset from the last entry for this key.');
   end;
   if not EditRecordValues(rec, rc, row, json) then
     exit; // cancelled, and nothing was touched
@@ -2051,9 +2051,9 @@ begin
     "JSON als TestBounds" puts it in the column from there }
   fLastRecordJson.U[rec.ActionKey] := json;
   EditBoundsJson.Text := U(json);
-  Log('Das Record-JSON steht jetzt unter "so würde es reisen" - ' +
-      '"JSON als TestBounds" schreibt es in die Spalte, dann läuft es im ' +
-      'Sammellauf und über den Server mit.');
+  Log('The record JSON now stands under "sent as JSON" - ' +
+      '"JSON as TestBounds" writes it into the column, then it runs in ' +
+      'Check all and through the server as well.');
   if cbViaServer.Checked then
   begin
     { the same JSON, but sent instead of executed here: the server checks the
@@ -2075,15 +2075,15 @@ procedure TFormEditor.cbViaServerChange(Sender: TObject);
 begin
   if not cbViaServer.Checked then
   begin
-    Log('Testen läuft wieder direkt auf der Verbindung: Rechte, ' +
-        'Caller-Scope und Regeln greifen dabei nicht.');
+    Log('Test runs directly on the connection again: rights, ' +
+        'caller scope and rules do not apply.');
     exit;
   end;
-  Log('Testen geht jetzt über den Server: nur gespeicherte Schlüssel, ' +
-      'dafür mit Rechtemaske, Caller-Scope und Regeln - also mit der ' +
-      'Antwort, die auch ein Client bekäme.');
-  Log('Achtung: der Server rollt nichts zurück. Ein Schreibvorgang wird ' +
-      'vor dem Ausführen noch einmal bestätigt.');
+  Log('Test now goes through the server: saved keys only, ' +
+      'but with rights mask, caller scope and rules - that is, with the ' +
+      'answer a client would get.');
+  Log('Caution: the server rolls nothing back. A write is ' +
+      'confirmed once more before it runs.');
 end;
 
 function TFormEditor.ServerConnect: boolean;
@@ -2129,7 +2129,7 @@ begin
   res.Json := '[]';
   if Rec.ActionKey = '' then
   begin
-    Say('Ohne Action-Key kann der Server nichts ausführen.', stBad);
+    Say('Without an action key the server can run nothing.', stBad);
     exit;
   end;
   if (Rec.RecordType <> '') and
@@ -2138,8 +2138,8 @@ begin
     { a record write has no parameter list to send - it goes through
       RunRecordThroughServer, which "Testen" picks for this kind of key
       before it ever gets here }
-    Say('Record-Schreibvorgang: die Werte kommen aus dem Record, nicht aus ' +
-      'der Parameterliste - "Testen" nimmt dafür den Record-Weg.', stHint);
+    Say('Record write: the values come from the record, not from ' +
+      'the parameter list - "Test" takes the record path for it.', stHint);
     exit;
   end;
   if Rec.Sql <> '' then
@@ -2148,13 +2148,13 @@ begin
     write := RecordKindOf(Rec) = raDelete;
   if write then
     { the one promise this tool makes, and the one place it cannot keep it }
-    if MessageDlg('Über den Server ausführen',
-         'Der Server führt diesen Schreibvorgang wirklich aus und rollt ' +
-         'nichts zurück.'#13#10 + 'Die Zeilen bleiben so, wie sie danach ' +
-         'sind. Fortfahren?',
+    if MessageDlg('Run through the server',
+         'The server really runs this write and rolls ' +
+         'nothing back.'#13#10 + 'The rows stay as they are ' +
+         'afterwards. Continue?',
          mtWarning, [mbYes, mbNo], 0) <> mrYes then
     begin
-      Say('Abgebrochen - nichts ausgeführt.', stOk);
+      Say('Cancelled - nothing was run.', stOk);
       exit;
     end;
   if not BoundsToVariant(Bounds, values, msg) then
@@ -2185,16 +2185,16 @@ begin
       else
         res.Kind := skSelect;
       res.ExecutedSql := '';
-      res.Message := FormatUtf8('Über den Server: % -> %',
+      res.Message := FormatUtf8('Through the server: % -> %',
         [Rec.ActionKey, ToText(status)]);
       if status = sqlNotAllowed then
         res.Message := res.Message +
-          ' (die Maske des Templates gegen die des angemeldeten Kontos)';
+          ' (the template''s mask against that of the logged-in account)';
       if status = sqlNeedsLogin then
-        res.Message := res.Message + ' (nicht angemeldet)';
+        res.Message := res.Message + ' (not logged in)';
       if status = sqlUnknownKey then
-        res.Message := FormatUtf8('% - der Server kennt diesen Schlüssel ' +
-          'nicht. Erst speichern und "Server neu laden".', [res.Message]);
+        res.Message := FormatUtf8('% - the server does not know this ' +
+          'key. Save first, then "Reload server".', [res.Message]);
     except
       on E: Exception do
       begin
@@ -2239,26 +2239,26 @@ begin
   if IsRecordJson(box) then
   begin
     Json := box;
-    Msg := 'Record aus "geht als JSON raus".';
+    Msg := 'Record from "sent as JSON".';
     exit;
   end;
   if IsRecordJson(kept) then
   begin
     Json := kept;
-    Msg := 'Record aus der letzten Eingabe im Dialog.';
+    Msg := 'Record from the last entry in the dialog.';
     exit;
   end;
   if IsRecordJson(Rec.TestBounds) then
   begin
     Json := Rec.TestBounds;
-    Msg := 'Record aus der Spalte TestBounds.';
+    Msg := 'Record from the TestBounds column.';
     exit;
   end;
   result := false;
   Json := '';
-  Msg := FormatUtf8('% schreibt einen Record, und es liegt keiner vor: ' +
-    '"Record-Werte eingeben..." erzeugt ihn, oder die Spalte TestBounds ' +
-    'trägt einen.', [Rec.ActionKey]);
+  Msg := FormatUtf8('% writes a record, and there is none: ' +
+    '"Enter record values..." creates one, or the TestBounds column ' +
+    'carries one.', [Rec.ActionKey]);
 end;
 
 { The record direction, through the server.
@@ -2284,16 +2284,16 @@ begin
   res.Kind := skWrite;
   if Rec.ActionKey = '' then
   begin
-    Say('Ohne Action-Key kann der Server nichts ausführen.', stBad);
+    Say('Without an action key the server can run nothing.', stBad);
     exit;
   end;
-  if MessageDlg('Über den Server ausführen',
-       'Der Server führt diesen Record-Schreibvorgang wirklich aus und ' +
-       'rollt nichts zurück.'#13#10 + 'Die Zeile bleibt so, wie sie danach ' +
-       'ist. Fortfahren?',
+  if MessageDlg('Run through the server',
+       'The server really runs this record write and ' +
+       'rolls nothing back.'#13#10 + 'The row stays as it is ' +
+       'afterwards. Continue?',
        mtWarning, [mbYes, mbNo], 0) <> mrYes then
   begin
-    Say('Abgebrochen - nichts ausgeführt.', stOk);
+    Say('Cancelled - nothing was run.', stOk);
     exit;
   end;
   if not ServerConnect then
@@ -2309,16 +2309,16 @@ begin
       { the statement was made in the server, so there is none to show here -
         an empty box is honest, a locally generated one would not be }
       res.ExecutedSql := '';
-      res.Message := FormatUtf8('Über den Server: % -> %',
+      res.Message := FormatUtf8('Through the server: % -> %',
         [Rec.ActionKey, ToText(status)]);
       if status = sqlNotAllowed then
         res.Message := res.Message +
-          ' (die Maske des Templates gegen die des angemeldeten Kontos)';
+          ' (the template''s mask against that of the logged-in account)';
       if status = sqlNeedsLogin then
-        res.Message := res.Message + ' (nicht angemeldet)';
+        res.Message := res.Message + ' (not logged in)';
       if status = sqlUnknownKey then
-        res.Message := FormatUtf8('% - der Server kennt diesen Schlüssel ' +
-          'nicht. Erst speichern und "Server neu laden".', [res.Message]);
+        res.Message := FormatUtf8('% - the server does not know this ' +
+          'key. Save first, then "Reload server".', [res.Message]);
     except
       on E: Exception do
       begin
@@ -2343,7 +2343,7 @@ begin
     exit;
   result := LoginClient(user, pass, msg);
   if result then
-    Log('Angemeldet als ' + user + '.')
+    Log('Logged in as ' + user + '.')
   else
     Log(msg);
 end;
@@ -2366,7 +2366,7 @@ begin
       if status = sqlOk then
         Log('Server reloaded its templates.')
       else if status = sqlNeedsLogin then
-        Log('Der Server verlangt eine Anmeldung, und es wurde keine gemacht.')
+        Log('The server requires a login, and none was made.')
       else
         Log('The server refused the set (' + ToText(status) +
             ') and kept the templates it had.');
@@ -2374,7 +2374,7 @@ begin
       on E: Exception do
         { the call reaches the server and the server is the one that fails -
           its own database may be behind the same tunnel this editor is }
-        Log(FormatUtf8('Der Server hat den Reload nicht beantwortet: % %',
+        Log(FormatUtf8('The server did not answer the reload: % %',
           [E.ClassType, E.Message]));
     end;
   finally
