@@ -48,7 +48,7 @@ begin
   result := false;
   dlg := TForm.CreateNew(nil);
   try
-    dlg.Caption := 'Anmelden';
+    dlg.Caption := 'Log in';
     dlg.Position := poScreenCenter;
     dlg.BorderStyle := bsDialog;
     dlg.ClientWidth := 360;
@@ -62,7 +62,7 @@ begin
     lblUser := TLabel.Create(dlg);
     lblUser.Parent := dlg;
     lblUser.SetBounds(16, 48, 80, 16);
-    lblUser.Caption := 'Benutzer:';
+    lblUser.Caption := 'User:';
 
     edUser := TEdit.Create(dlg);
     edUser.Parent := dlg;
@@ -72,7 +72,7 @@ begin
     lblPass := TLabel.Create(dlg);
     lblPass.Parent := dlg;
     lblPass.SetBounds(16, 84, 80, 16);
-    lblPass.Caption := 'Passwort:';
+    lblPass.Caption := 'Password:';
 
     edPass := TEdit.Create(dlg);
     edPass.Parent := dlg;
@@ -84,14 +84,14 @@ begin
     btnOk := TButton.Create(dlg);
     btnOk.Parent := dlg;
     btnOk.SetBounds(160, 120, 90, 28);
-    btnOk.Caption := 'Anmelden';
+    btnOk.Caption := 'Log in';
     btnOk.ModalResult := mrOk;
     btnOk.Default := true;
 
     btnCancel := TButton.Create(dlg);
     btnCancel.Parent := dlg;
     btnCancel.SetBounds(256, 120, 90, 28);
-    btnCancel.Caption := 'Abbrechen';
+    btnCancel.Caption := 'Cancel';
     btnCancel.ModalResult := mrCancel;
     btnCancel.Cancel := true;
 

@@ -42,7 +42,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 14
       Width = 26
-      Caption = 'Ziel:'
+      Caption = 'Target:'
       ParentColor = False
     end
     object EditTarget: TEdit
@@ -81,7 +81,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 14
       Width = 59
-      Caption = 'Passwort:'
+      Caption = 'Password:'
       ParentColor = False
     end
     object EditPassword: TEdit
@@ -98,7 +98,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 9
       Width = 130
-      Caption = 'Verbinden'
+      Caption = 'Connect'
       TabOrder = 4
       OnClick = ButtonConnectClick
     end
@@ -107,7 +107,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 44
       Width = 35
-      Caption = 'Profil:'
+      Caption = 'Profile:'
       ParentColor = False
     end
     object ComboProfile: TComboBox
@@ -149,7 +149,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 69
       Width = 130
-      Caption = 'Liste laden'
+      Caption = 'Load list'
       TabOrder = 6
       OnClick = ButtonLoadListClick
     end
@@ -189,7 +189,7 @@ object FormEditor: TFormEditor
         Height = 27
         Top = 6
         Width = 110
-        Caption = 'Neu'
+        Caption = 'New'
         TabOrder = 0
         OnClick = ButtonNewClick
       end
@@ -198,7 +198,7 @@ object FormEditor: TFormEditor
         Height = 27
         Top = 6
         Width = 110
-        Caption = 'Löschen'
+        Caption = 'Delete'
         TabOrder = 1
         OnClick = ButtonDeleteClick
       end
@@ -225,7 +225,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 12
       Width = 71
-      Caption = 'Action-Key:'
+      Caption = 'Action key:'
       ParentColor = False
     end
     object EditKey: TEdit
@@ -241,7 +241,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 12
       Width = 145
-      Caption = 'Rechte lesen/schreiben:'
+      Caption = 'Rights read/write:'
       ParentColor = False
     end
     object EditReadGroups: TEdit
@@ -265,7 +265,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 12
       Width = 218
-      Caption = 'Bitmaske je Gruppe, 0 = keine Regel'
+      Caption = 'bitmask per group, 0 = no rule'
       ParentColor = False
     end
     object LabelSql: TLabel
@@ -308,7 +308,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 168
       Width = 41
-      Caption = 'Typen:'
+      Caption = 'Types:'
       ParentColor = False
     end
     object EditParamTypes: TEdit
@@ -324,7 +324,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 168
       Width = 74
-      Caption = 'Record-Typ:'
+      Caption = 'Record type:'
       ParentColor = False
     end
     object EditRecordType: TEdit
@@ -340,7 +340,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 163
       Width = 190
-      Caption = 'aus Parametern übernehmen'
+      Caption = 'Take from parameters'
       TabOrder = 12
       OnClick = ButtonTypesFromBoundsClick
     end
@@ -349,7 +349,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 200
       Width = 66
-      Caption = 'Parameter:'
+      Caption = 'Parameters:'
       ParentColor = False
     end
     object ComboBoundKind: TComboBox
@@ -374,7 +374,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 195
       Width = 120
-      Caption = 'Hinzufügen'
+      Caption = 'Add'
       TabOrder = 4
       OnClick = ButtonAddBoundClick
     end
@@ -383,7 +383,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 195
       Width = 90
-      Caption = 'Leeren'
+      Caption = 'Clear'
       TabOrder = 5
       OnClick = ButtonClearBoundsClick
     end
@@ -393,7 +393,7 @@ object FormEditor: TFormEditor
       Top = 226
       Width = 200
       Anchors = [akTop, akRight]
-      Caption = 'JSON als TestBounds'
+      Caption = 'JSON as TestBounds'
       OnClick = ButtonTestBoundsFromJsonClick
       TabOrder = 25
     end
@@ -422,7 +422,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 232
       Width = 120
-      Caption = 'geht als JSON raus:'
+      Caption = 'sent as JSON:'
       ParentColor = False
     end
     object EditBoundsJson: TEdit
@@ -442,7 +442,7 @@ object FormEditor: TFormEditor
       Height = 18
       Top = 312
       Width = 352
-      Caption = 'Gegenprobe: Werte einsetzen statt binden (bindet nichts)'
+      Caption = 'Cross-check: inline the values instead of binding'
       TabOrder = 8
     end
     object ButtonRecordDialog: TButton
@@ -450,7 +450,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 284
       Width = 220
-      Caption = 'Record-Werte eingeben...'
+      Caption = 'Enter record values...'
       TabOrder = 17
       OnClick = ButtonRecordDialogClick
     end
@@ -459,7 +459,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 168
       Width = 61
-      Caption = 'Schlüssel:'
+      Caption = 'Key:'
       ParentColor = False
     end
     object EditKeyField: TEdit
@@ -476,7 +476,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 318
       Width = 50
-      Caption = 'Tabelle:'
+      Caption = 'Table:'
       ParentColor = False
     end
     object EditTableName: TEdit
@@ -487,7 +487,7 @@ object FormEditor: TFormEditor
       Anchors = [akTop, akLeft, akRight]
       OnChange = SqlPartChange
       TabOrder = 22
-      TextHint = 'leer = aus dem Record-Typ'
+      TextHint = 'empty = from the record type'
     end
     object LabelOrderBy: TLabel
       Left = 470
@@ -510,7 +510,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 350
       Width = 91
-      Caption = 'Record-Felder:'
+      Caption = 'Record fields:'
       ParentColor = False
     end
     object MemoRecordDecl: TMemo
@@ -540,14 +540,14 @@ object FormEditor: TFormEditor
       Top = 382
       Width = 160
       TabOrder = 18
-      TextHint = 'leer, oder userid'
+      TextHint = 'empty, or userid'
     end
     object LabelRules: TLabel
       Left = 290
       Height = 16
       Top = 386
       Width = 45
-      Caption = 'Regeln:'
+      Caption = 'Rules:'
       ParentColor = False
     end
     object EditRules: TEdit
@@ -556,7 +556,7 @@ object FormEditor: TFormEditor
       Top = 382
       Width = 410
       TabOrder = 23
-      TextHint = 'z.B. 1:notempty;2:plz;3:email'
+      TextHint = 'e.g. 1:notempty;2:plz;3:email'
     end
     object LabelTestBounds: TLabel
       Left = 790
@@ -574,7 +574,7 @@ object FormEditor: TFormEditor
       Anchors = [akTop, akLeft, akRight]
       OnChange = SqlPartChange
       TabOrder = 24
-      TextHint = 'Werte für den Sammellauf, z.B. ["Wegberg"]'
+      TextHint = 'values for Check all, e.g. ["Wegberg"]'
     end
     object cbRollback: TCheckBox
       Left = 928
@@ -614,7 +614,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 8
       Width = 100
-      Caption = 'Prüfen'
+      Caption = 'Check'
       TabOrder = 0
       OnClick = ButtonCheckClick
     end
@@ -623,7 +623,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 8
       Width = 100
-      Caption = 'Testen'
+      Caption = 'Test'
       TabOrder = 1
       OnClick = ButtonTestClick
     end
@@ -632,7 +632,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 8
       Width = 140
-      Caption = 'Alle prüfen'
+      Caption = 'Check all'
       TabOrder = 5
       OnClick = ButtonCheckAllClick
     end
@@ -641,7 +641,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 8
       Width = 110
-      Caption = 'Speichern'
+      Caption = 'Save'
       TabOrder = 2
       OnClick = ButtonSaveClick
     end
@@ -665,7 +665,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 8
       Width = 160
-      Caption = 'Server neu laden'
+      Caption = 'Reload server'
       TabOrder = 3
       OnClick = ButtonReloadServerClick
     end
@@ -674,7 +674,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 45
       Width = 42
-      Caption = 'Suche:'
+      Caption = 'Search:'
       ParentColor = False
     end
     object EditKeyFilter: TEdit
@@ -690,7 +690,7 @@ object FormEditor: TFormEditor
       Height = 27
       Top = 40
       Width = 240
-      Caption = 'Create-Table-SQL erzeugen'
+      Caption = 'Generate CREATE TABLE'
       TabOrder = 7
       OnClick = ButtonCreateTableClick
     end
@@ -699,7 +699,7 @@ object FormEditor: TFormEditor
       Height = 16
       Top = 45
       Width = 46
-      Caption = 'Dialekt:'
+      Caption = 'Dialect:'
       ParentColor = False
     end
     object ComboDialect: TComboBox
@@ -716,7 +716,7 @@ object FormEditor: TFormEditor
       Height = 18
       Top = 42
       Width = 320
-      Caption = 'über den Server ausführen (mit Anmeldung)'
+      Caption = 'run through the server (with login)'
       TabOrder = 5
       OnChange = cbViaServerChange
     end
@@ -761,7 +761,7 @@ object FormEditor: TFormEditor
           Height = 18
           Top = 4
           Width = 289
-          Caption = 'roh anzeigen (genau die Bytes, die rausgehen)'
+          Caption = 'show raw (exactly the bytes that go out)'
           TabOrder = 0
           OnChange = CheckRawJsonChange
         end
@@ -782,7 +782,7 @@ object FormEditor: TFormEditor
       end
     end
     object TabTable: TTabSheet
-      Caption = 'Tabelle'
+      Caption = 'Table'
       ClientHeight = 204
       ClientWidth = 918
       object GridResult: TStringGrid
@@ -800,7 +800,7 @@ object FormEditor: TFormEditor
       end
     end
     object TabDto: TTabSheet
-      Caption = 'Typ'
+      Caption = 'Type'
       ClientHeight = 204
       ClientWidth = 918
       object PanelDtoTop: TPanel
@@ -818,7 +818,7 @@ object FormEditor: TFormEditor
           Height = 16
           Top = 14
           Width = 59
-          Caption = 'Typname:'
+          Caption = 'Type name:'
           ParentColor = False
         end
         object EditTypeName: TEdit
@@ -833,7 +833,7 @@ object FormEditor: TFormEditor
           Height = 27
           Top = 8
           Width = 180
-          Caption = 'Typ aus Ergebnis erzeugen'
+          Caption = 'Type from result'
           TabOrder = 1
           OnClick = ButtonGenerateClick
         end
@@ -842,7 +842,7 @@ object FormEditor: TFormEditor
           Height = 27
           Top = 8
           Width = 160
-          Caption = 'In die Zwischenablage'
+          Caption = 'Copy to clipboard'
           TabOrder = 2
           OnClick = ButtonCopyDtoClick
         end
@@ -862,7 +862,7 @@ object FormEditor: TFormEditor
       end
     end
     object TabLog: TTabSheet
-      Caption = 'Meldungen'
+      Caption = 'Messages'
       ClientHeight = 204
       ClientWidth = 918
       object MemoLog: TMemo

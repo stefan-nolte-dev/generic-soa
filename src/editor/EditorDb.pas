@@ -103,25 +103,25 @@ begin
   if Msg = '' then
     exit;
   if PosI('SSPI', Msg) > 0 then
-    result := 'Das sieht nach einem fehlenden oder abgelaufenen Kerberos-' +
-      'Ticket aus: "klist" zeigt, was da ist, "kinit <benutzer>@<REALM>" ' +
-      'holt ein neues. Ein Ticket gilt üblicherweise etwa zehn Stunden.'
+    result := 'This looks like a missing or expired Kerberos ticket: ' +
+      '"klist" shows what is there, "kinit <user>@<REALM>" fetches a ' +
+      'new one. A ticket usually lasts about ten hours.'
   else if (PosI('SSL ROUTINES', Msg) > 0) or
           (PosI('UNSUPPORTED PROTOCOL', Msg) > 0) then
-    result := 'Das ist die TLS-Seite: bietet der Server nur TLS 1.0, dann ' +
-      'lehnt OpenSSL das ohne openssl-tls1.cnf ab. Die Datei muss neben der ' +
-      'ausführbaren Datei liegen.'
+    result := 'This is the TLS side: if the server offers TLS 1.0 only, ' +
+      'OpenSSL refuses it without openssl-tls1.cnf. That file has to sit ' +
+      'beside the executable.'
   else if (PosI('TCP PROVIDER', Msg) > 0) or
           (PosI('LOGIN TIMEOUT', Msg) > 0) or
           (PosI('NOT FOUND OR NOT ACCESSIBLE', Msg) > 0) then
-    result := 'Das sieht nach dem Weg zum Server aus: ohne Route dorthin ' +
-      '(VPN, Tunnel) löst der Name nicht auf oder die Verbindung läuft in ' +
-      'die Zeitüberschreitung.'
+    result := 'This looks like the route to the server: without one ' +
+      '(VPN, tunnel) the name does not resolve or the connection ' +
+      'times out.'
   else if (PosI('IM002', Msg) > 0) or
           (PosI('DATA SOURCE NAME NOT FOUND', Msg) > 0) or
           (PosI('CAN''T OPEN LIB', Msg) > 0) then
-    result := 'Das sieht nach dem ODBC-Treiber aus: der Name in DRIVER={...} ' +
-      'muss einer sein, den "odbcinst -q -d" auflistet.';
+    result := 'This looks like the ODBC driver: the name in DRIVER={...} ' +
+      'has to be one that "odbcinst -q -d" lists.';
 end;
 
 { TEditorDb }

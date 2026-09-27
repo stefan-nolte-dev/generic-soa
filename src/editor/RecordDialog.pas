@@ -85,7 +85,7 @@ begin
         Value := 'true'
       else
       begin
-        Msg := 'true oder false';
+        Msg := 'true or false';
         result := false;
       end;
     ptByte, ptCardinal, ptInt64, ptInteger, ptQWord, ptWord:
@@ -96,7 +96,7 @@ begin
           Value := u
         else
         begin
-          Msg := 'eine ganze Zahl';
+          Msg := 'an integer';
           result := false;
         end;
       end;
@@ -111,7 +111,7 @@ begin
           Value := u
         else
         begin
-          Msg := 'eine Zahl';
+          Msg := 'a number';
           result := false;
         end;
       end;
@@ -142,7 +142,7 @@ begin
   Json := '';
   form := TForm.CreateNew(nil);
   try
-    form.Caption := 'Record bearbeiten - ' + string(Rec.ActionKey);
+    form.Caption := 'Edit record - ' + string(Rec.ActionKey);
     form.BorderStyle := bsDialog;
     form.Position := poScreenCenter;
     form.ClientWidth := 460;
@@ -152,12 +152,12 @@ begin
     head.Parent := form;
     head.SetBounds(16, 14, 430, 18);
     if _Safe(Preset)^.Count > 0 then
-      head.Caption := Format('%s - %d Feld(er), aus der Datenbank vorbelegt. ' +
-        'Die Werte gehen als JSON hinaus, so wie ein Client sie schickt.',
+      head.Caption := Format('%s - %d field(s), preset from the database. ' +
+        'The values go out as JSON, the way a client sends them.',
         [string(rc.Name), rc.Props.Count])
     else
-      head.Caption := Format('%s - %d Feld(er). Die Werte gehen als JSON ' +
-        'hinaus, so wie ein Client sie schickt.',
+      head.Caption := Format('%s - %d field(s). The values go out as JSON, ' +
+        'the way a client sends them.',
         [string(rc.Name), rc.Props.Count]);
     head.AutoSize := false;
     head.WordWrap := true;
@@ -196,13 +196,13 @@ begin
     cancel := TButton.Create(form);
     cancel.Parent := form;
     cancel.SetBounds(230, y + 14, 100, 27);
-    cancel.Caption := 'Abbrechen';
+    cancel.Caption := 'Cancel';
     cancel.ModalResult := mrCancel;
     cancel.Cancel := true;
     ok := TButton.Create(form);
     ok.Parent := form;
     ok.SetBounds(340, y + 14, 100, 27);
-    ok.Caption := 'Übernehmen';
+    ok.Caption := 'Apply';
     ok.ModalResult := mrOk;
     ok.Default := true;
 
@@ -217,8 +217,8 @@ begin
         p := @rc.Props.List[i];
         if not ValueToJson(p^.Value.Parser, edits[i].Text, w, msg) then
         begin
-          MessageDlg('Wert passt nicht zum Feld',
-            Format('%s erwartet %s.', [string(p^.Name), msg]),
+          MessageDlg('Value does not fit the field',
+            Format('%s expects %s.', [string(p^.Name), msg]),
             mtWarning, [mbOK], 0);
           edits[i].SetFocus;
           Json := '';

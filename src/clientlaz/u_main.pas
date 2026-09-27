@@ -111,9 +111,9 @@ begin
   ComboProfile.ItemIndex := 0;
   ComboProfileChange(nil);
   MemoLog.Clear;
-  MemoLog.Lines.Add('Server starten, dann "Aktionen vom Server holen".');
-  MemoLog.Lines.Add('Verlangt der Server ein Token (Start mit "token"), ' +
-    'erst anmelden.');
+  MemoLog.Lines.Add('Start the server, then "Fetch actions from server".');
+  MemoLog.Lines.Add('If the server demands a token (started with "token"), ' +
+    'log in first.');
   ShowLoginState;
 end;
 
@@ -143,11 +143,11 @@ var
 begin
   if not LoggedIn then
   begin
-    Caption := TITLE + ' - nicht angemeldet';
-    ButtonLogin.Caption := 'Anmelden...';
+    Caption := TITLE + ' - not logged in';
+    ButtonLogin.Caption := 'Log in...';
     exit;
   end;
-  ButtonLogin.Caption := 'Abmelden';
+  ButtonLogin.Caption := 'Log out';
   Caption := TITLE + ' - ' + string(ClientUser);
   { and what the server says about the token, which is the half the client
     cannot know: masks and remaining time. This connects, so it belongs
@@ -156,7 +156,7 @@ begin
     exit;
   try
     if AuthTool.WhoAmI(user, reads, writes, seconds) = sqlOk then
-      Caption := Format('%s - %s  rd=%d wr=%d  noch %d min',
+      Caption := Format('%s - %s  rd=%d wr=%d  %d min left',
         [TITLE, string(user), reads, writes, seconds div 60]);
   finally
     DisconnectClient;
@@ -181,7 +181,7 @@ begin
   try
     result := LoginClient(user, pass, msg);
     if result then
-      MemoLog.Lines.Add('Angemeldet als ' + string(user) + '.')
+      MemoLog.Lines.Add('Logged in as ' + string(user) + '.')
     else
       MemoLog.Lines.Add(string(msg));
   finally
@@ -198,7 +198,7 @@ begin
   result := false;
   if Status <> sqlNeedsLogin then
     exit;
-  MemoLog.Lines.Add('Der Server verlangt eine Anmeldung.');
+  MemoLog.Lines.Add('The server requires a login.');
   { nur anmelden. Die Titelzeile fragt der Aufrufer nach, wenn er seine
     Verbindung wieder losgelassen hat - hier steht sie noch offen }
   result := ShowLogin({connected=}true);
@@ -209,7 +209,7 @@ begin
   if LoggedIn then
   begin
     LogoutClient;
-    MemoLog.Lines.Add('Abgemeldet - das Token ist vergessen.');
+    MemoLog.Lines.Add('Logged out - the token is forgotten.');
     ShowLoginState;
     exit;
   end;
@@ -250,7 +250,7 @@ begin
   end;
   if ComboAction.Items.Count > 0 then
     ComboAction.ItemIndex := 0;
-  MemoLog.Lines.Add(Format('%d Aktion(en) von %s',
+  MemoLog.Lines.Add(Format('%d action(s) from %s',
     [length(keys), EditServer.Text]));
 end;
 
@@ -280,7 +280,7 @@ begin
   key := RawUtf8(Trim(ComboAction.Text));
   if key = '' then
   begin
-    MemoLog.Lines.Add('Erst eine Aktion wählen.');
+    MemoLog.Lines.Add('Choose an action first.');
     exit;
   end;
   bounds := RawUtf8(Trim(EditBounds.Text));
@@ -311,8 +311,8 @@ begin
         explain: a template with a ? was called with an empty list }
       if (erg = sqlBadParams) and
          (bounds = '[]') then
-        MemoLog.Lines.Add('Diese Aktion erwartet Parameter. Bounds als ' +
-          'JSON-Liste angeben, z. B. [100] oder ["Fr%"].');
+        MemoLog.Lines.Add('This action expects parameters. Give the bounds as a ' +
+          'JSON list, e.g. [100] or ["Fr%"].');
       ShowResult(key, erg, json);
     finally
       DisconnectClient;
@@ -382,14 +382,14 @@ begin
   result := ConnectClient(RawUtf8(host), RawUtf8(port));
   if result then
     exit;
-  MemoLog.Lines.Add('Kein Dienst auf ' + host + ':' + port + '.');
+  MemoLog.Lines.Add('No service on ' + host + ':' + port + '.');
   if LastConnectError <> '' then
     MemoLog.Lines.Add('  ' + string(LastConnectError));
   { each profile has its own port, so the commonest cause is that the other
     server was started and this one was not }
   i := ComboProfile.ItemIndex;
   if i >= 0 then
-    MemoLog.Lines.Add('Starten mit:  ./soa_sql_templates_server ' +
+    MemoLog.Lines.Add('Start with:  ./soa_sql_templates_server ' +
       string(SQL_PROFILES[i].Name));
 end;
 

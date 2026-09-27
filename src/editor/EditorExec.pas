@@ -472,7 +472,7 @@ begin
       begin
         { the connection was good when it was opened and is not any more:
           Db reports rather than raises, and what it reports is here }
-        result.Message := 'Keine Verbindung mehr. ' + LastError(Db);
+        result.Message := 'The connection is gone. ' + LastError(Db);
         exit;
       end;
       kept := false;
@@ -576,8 +576,8 @@ begin
     in front of the message rather than behind it: the status line is one
     line, and the warning is the half worth seeing. }
   if rec.CallerScope <> '' then
-    result.Message := FormatUtf8('Ungescopt getestet (Caller-Scope "%" ' +
-      'wirkt nur über den Server, nicht hier). ', [rec.CallerScope]) +
+    result.Message := FormatUtf8('Tested unscoped (caller scope "%" ' +
+      'applies only through the server, not here). ', [rec.CallerScope]) +
       result.Message;
 end;
 
@@ -604,9 +604,9 @@ begin
   begin
     { an insert and an update are made from a record, and the values below
       the statement are not one - the dialog is where that record comes from }
-    result.Message := FormatUtf8('% hat kein Statement, und ohne Record ' +
-      'entstehen nur Retrieve und Delete. Add und Update brauchen einen ' +
-      'Record: "Record-Werte eingeben...".', [Rec.ActionKey]);
+    result.Message := FormatUtf8('% has no statement, and without a record ' +
+      'only Retrieve and Delete are generated. Add and Update need a ' +
+      'record: "Enter record values...".', [Rec.ActionKey]);
     exit;
   end;
   { How many ? the statement will have is known before it exists: a retrieve
@@ -617,11 +617,11 @@ begin
   if length(Bounds) <> wanted then
   begin
     if kind = raRetrieve then
-      result.Message := FormatUtf8('Das where dieses Templates hat % ?, ' +
-        'angegeben sind % Werte.', [wanted, length(Bounds)])
+      result.Message := FormatUtf8('The where of this template has % ?, ' +
+        '% value(s) are given.', [wanted, length(Bounds)])
     else
-      result.Message := FormatUtf8('Ein erzeugtes % nimmt genau einen ' +
-        'Wert - den Schlüssel. Angegeben: %.',
+      result.Message := FormatUtf8('A generated % takes exactly one ' +
+        'value - the key. Given: %.',
         [Rec.ActionKey, length(Bounds)]);
     exit;
   end;
@@ -665,7 +665,7 @@ begin
   res := Perform(Db, one, _Arr([Key]), weRollback);
   if res.Status = sqlNoRows then
   begin
-    Msg := FormatUtf8('Keine Zeile mit diesem Schlüssel: %', [res.ExecutedSql]);
+    Msg := FormatUtf8('No row with this key: %', [res.ExecutedSql]);
     exit;
   end;
   if res.Status <> sqlOk then
@@ -676,7 +676,7 @@ begin
   rows.InitJson(res.Json, JSON_FAST_FLOAT);
   if rows.Count <= 0 then
   begin
-    Msg := 'Die Abfrage lief, lieferte aber nichts Lesbares.';
+    Msg := 'The query ran but returned nothing readable.';
     exit;
   end;
   { a select answers with rows; a key matches one, and that one is the row }
