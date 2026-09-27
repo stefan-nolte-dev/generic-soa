@@ -130,11 +130,12 @@ begin
   Msg := OrmKeyProblem(Rec);
   if Msg <> '' then
     exit;
-  if (kind in [raRetrieve, raDelete]) and
+  if (kind <> raNone) and
      (Rec.Sql <> '') then
   begin
-    Msg := 'Ein Orm-Retrieve oder -Delete trägt kein eigenes Statement, ' +
-      'nur das where. Für Joins und Ähnliches ein Template ohne Orm.';
+    Msg := 'Ein Orm-Schlüssel trägt kein eigenes Statement: es entsteht aus ' +
+      'Record-Typ, Tabelle, Schlüssel und where. Für Joins, ' +
+      'zusammengesetzte Schlüssel und Ähnliches ein Template ohne Orm.';
     exit;
   end;
   { what the template says its parameters are }
@@ -250,12 +251,13 @@ end;
 function RunOneOnServer(const Rec: TSqlRec; AllowWrites: boolean): TSweepRow;
 var
   values, coerced: variant;
-  json, msg: RawUtf8;
+  json, msg, row: RawUtf8;
   fault: TSqlRuleFault;
   isrec, write: boolean;
   status: TSqlStatus;
   want, have: integer;
 begin
+  row := '';
   result := default(TSweepRow);
   result.ActionKey := Rec.ActionKey;
   result.Outcome := swSkipped;
@@ -323,7 +325,17 @@ begin
   end;
   json := '[]';
   try
-    if isrec then
+    if isrec and
+       (RecordKindOf(Rec) = raInsert) then
+    begin
+      { the call a client makes to add: it answers with the row, and the
+        sweep says so - "wrote it" and "handed back what it wrote" are two
+        claims, and the second is the one this call exists for }
+      row := '';
+      status := SqlTool.AddRecordForAction(Rec.ActionKey, Rec.TestBounds,
+        row);
+    end
+    else if isrec then
       status := SqlTool.WriteRecordForAction(Rec.ActionKey, Rec.TestBounds)
     else if write then
       status := SqlTool.WriteDataForAction(Rec.ActionKey, coerced)
@@ -346,6 +358,8 @@ begin
       begin
         result.Outcome := swOk;
         result.Message := FormatUtf8('% über den Server', [ToText(status)]);
+        if row <> '' then
+          result.Message := result.Message + RawUtf8(', zurück: ') + row;
       end;
     sqlNotAllowed:
       begin

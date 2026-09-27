@@ -28,6 +28,7 @@ uses
   mormot.core.text,
   mormot.core.log,
   mormot.core.variants,
+  mormot.db.core, // for TSqlDBDefinition, which database answers
   mormot.db.sql,
   SqlStatus,
   SqlParamTypes,
@@ -61,9 +62,16 @@ type
     function Execute(const Rec: TSqlRec;
       const Bounds: variant): TSqlStatus;
     /// run a resolved insert or update from one serialised record
-    function ExecuteRecord(const Rec: TSqlRec;
-      const Json: RawUtf8): TSqlStatus;
+    // - Row is the inserted row as a JSON object, where the database can
+    // hand it back; '' for an update and wherever it cannot
+    function ExecuteRecord(const Rec: TSqlRec; const Json: RawUtf8;
+      var Row: RawUtf8): TSqlStatus;
   end;
+
+/// how an insert on this kind of database returns its row
+// - what the connection says it is, not what a profile claims: the same
+// check the editor makes to show what will run
+function ReturningFor(Dbms: TSqlDBDefinition): TInsertReturning;
 
 /// what went wrong in this thread's last call, in the driver's own words
 // - every failure is a status, and a status has no room for a sentence. The
@@ -79,6 +87,21 @@ implementation
 
 threadvar
   LastError: RawUtf8;
+
+function ReturningFor(Dbms: TSqlDBDefinition): TInsertReturning;
+begin
+  case Dbms of
+    dSQLite,
+    dPostgreSQL:
+      result := irReturning;
+    dMSSQL:
+      result := irOutput;
+  else
+    { MariaDB could since 10.5, MySQL cannot at all, and the others are not
+      tried - an insert that runs without its row beats one that fails }
+    result := irNone;
+  end;
+end;
 
 function LastSqlError: RawUtf8;
 begin
@@ -280,20 +303,32 @@ end;
 
 { The record direction. No branch per type, and nothing to add when the next
   record arrives: the statement is generated from the record type and the
-  action key, or its :Name placeholders are filled from the record's fields.
+  action key.
 
   What is executed is a copy of the resolved record carrying that statement.
   It is still a TSqlRec issued by the registry, so the property that only
-  registered templates reach the driver holds. }
+  registered templates reach the driver holds.
+
+  An insert reads its row back in the same statement where the database can.
+  The alternatives are all worse: a second select after the insert finds
+  "the highest ID", which is another writer's row as soon as there are two,
+  and mORMot's own way - counting the ID up in the server - assumes nothing
+  else writes to the table, which in a grown database is never true. }
 function TSqlTemplateExec.ExecuteRecord(const Rec: TSqlRec;
-  const Json: RawUtf8): TSqlStatus;
+  const Json: RawUtf8; var Row: RawUtf8): TSqlStatus;
 var
   one: TSqlRec;
-  bound: variant;
-  expanded, msg: RawUtf8;
+  bound, coerced: variant;
+  expanded, msg, rows: RawUtf8;
+  returns: boolean;
+  stmt: ISqlDBStatement;
+  n: PtrInt;
+  doc: TDocVariantData;
 begin
   LastError := '';
-  case BindRecordJson(Rec, Json, expanded, bound, msg) of
+  Row := '';
+  case BindRecordJson(Rec, Json, ReturningFor(fProps.Dbms), expanded, bound,
+         returns, msg) of
     rbOk:
       ;
     rbBadJson,
@@ -307,8 +342,8 @@ begin
       end;
   else
     begin
-      { a type nobody registered, or placeholders that miss its fields:
-        nothing the caller can do about it }
+      { a type nobody registered, a statement where none belongs: nothing
+        the caller can do about it }
       SynDBLog.Add.Log(sllError, 'ExecuteRecord(%): %', [Rec.ActionKey, msg]);
       SetLastError('%', [msg]);
       exit(sqlFailed);
@@ -318,7 +353,37 @@ begin
   one.Sql := expanded;
   { the values came out of a typed record, so there is nothing to coerce }
   one.ParamTypes := '';
-  result := Execute(one, bound);
+  if not returns then
+    exit(Execute(one, bound));
+  result := Coerce(one, bound, coerced);
+  if result <> sqlOk then
+    exit;
+  { the insert answers with rows, so it is prepared as a select would be }
+  result := Prepare(one, coerced, {expectresults=}true, stmt);
+  if result <> sqlOk then
+    exit;
+  n := 0;
+  try
+    stmt.ExecutePrepared;
+    rows := stmt.FetchAllAsJson({expand=}true, @n);
+  except
+    on E: Exception do
+    begin
+      SynDBLog.Add.Log(sllError, 'ExecuteRecord(%) failed: % %',
+        [Rec.ActionKey, E.ClassType, E.Message]);
+      SetLastError('% %', [E.ClassType, E.Message]);
+      exit(sqlFailed);
+    end;
+  end;
+  if n <= 0 then
+    exit(sqlNothingWritten);
+  { one insert, one row: the array's only element is the record }
+  doc.InitJson(rows, JSON_FAST_FLOAT);
+  if doc.IsArray and
+     (doc.Count > 0) then
+    Row := _Safe(doc.Values[0])^.ToJson
+  else
+    Row := rows; // an object already, when there was a single row
 end;
 
 end.

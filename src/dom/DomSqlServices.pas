@@ -59,8 +59,10 @@ type
     function WriteData(const Caller: TSqlCaller; const Action: RawUtf8;
       const Bounds: variant): TSqlStatus;
     /// run a registered insert or update from one serialised record
+    // - Row is what an insert wrote, as a JSON object - see
+    // ISqlTemplateExec.ExecuteRecord; '' for an update
     function WriteRecord(const Caller: TSqlCaller; const Action: RawUtf8;
-      const Json: RawUtf8): TSqlStatus;
+      const Json: RawUtf8; var Row: RawUtf8): TSqlStatus;
     /// the action keys this caller could name
     function AvailableActions(const Caller: TSqlCaller): TRawUtf8DynArray;
     /// re-read the templates, whether or not the source changed

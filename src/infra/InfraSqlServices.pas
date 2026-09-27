@@ -40,11 +40,13 @@ type
     function Execute(const Rec: TSqlRec; const Bounds: variant): TSqlStatus;
     /// run a resolved insert or update from one serialised record
     // - the statement is generated here, from the record type and the action
-    // key, or its :Name placeholders are filled - see SqlRecordBind. Which is
-    // why the domain layer hands the JSON down untouched: composing SQL is
-    // this layer's business
-    function ExecuteRecord(const Rec: TSqlRec;
-      const Json: RawUtf8): TSqlStatus;
+    // key - see SqlRecordBind. Which is why the domain layer hands the JSON
+    // down untouched: composing SQL is this layer's business
+    // - Row is what an insert wrote, as a JSON object of the record's
+    // columns, key and database defaults included - '' for an update, and on
+    // a database that cannot return it in the same statement
+    function ExecuteRecord(const Rec: TSqlRec; const Json: RawUtf8;
+      var Row: RawUtf8): TSqlStatus;
   end;
 
   { ISqlTemplateSource

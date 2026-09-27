@@ -37,6 +37,8 @@ type
       const Bounds: variant): TSqlStatus;
     function WriteRecordForAction(const Action: RawUtf8;
       const Json: RawUtf8): TSqlStatus;
+    function AddRecordForAction(const Action: RawUtf8; const Json: RawUtf8;
+      var Row: RawUtf8): TSqlStatus;
     function AvailableActions: TRawUtf8DynArray;
     function ReloadTemplates: TSqlStatus;
   end;
@@ -71,8 +73,17 @@ end;
 
 function TAppSqlTool.WriteRecordForAction(const Action: RawUtf8;
   const Json: RawUtf8): TSqlStatus;
+var
+  row: RawUtf8;
 begin
-  result := fDom.WriteRecord(CurrentCaller, Action, Json);
+  { the same write; whatever an insert handed back is not asked for here }
+  result := fDom.WriteRecord(CurrentCaller, Action, Json, row);
+end;
+
+function TAppSqlTool.AddRecordForAction(const Action: RawUtf8;
+  const Json: RawUtf8; var Row: RawUtf8): TSqlStatus;
+begin
+  result := fDom.WriteRecord(CurrentCaller, Action, Json, Row);
 end;
 
 function TAppSqlTool.AvailableActions: TRawUtf8DynArray;

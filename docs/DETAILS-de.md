@@ -175,7 +175,7 @@ src/infra/      InfraSqlServices.pas        was die Schicht darüber von hier br
 src/serv/app/   ServSqlTemplates.pas        Start — sieht alles
 src/client/     ClientDtos.pas              nur Lese-Records, nur clientseitig
                 AppSqlClient.pas            Verbindung
-                u_client_parsing.pas        ParseDynArray, WriteRecord
+                u_client_parsing.pas        ParseDynArray, WriteRecord, AddRecord
 src/clientlaz/  u_main.pas / .lfm           ein Knopf, ein Memo
 src/editor/     EditorDb.pas                die eigene Verbindung des Editors
                 SqlBounds.pas               typisierte Parameter und Einsetzen
@@ -608,12 +608,14 @@ belegen sollte.
 | `RecordType` | der Record, den ein Record-Schreiben erwartet, als Name | kein Record-Schreiben |
 | `RecordDecl` | die Felder dieses Records, als textuelle RTTI von mORMot | der Typ muss im Server einkompiliert sein |
 | `KeyField` | die Schlüsselspalte eines erzeugten Statements | `ID` |
+| `TableName` | die Tabelle, die ein erzeugtes Statement nennt | der Recordtyp ohne `TDto` und `Row` |
 | `CallerScope` | bindet die Identität des Aufrufers ans letzte `?` | der Client setzt jeden Wert |
 | `Filter` | die Where-Klausel eines erzeugten Retrieve, ohne das Wort `where`; im Editor steht sie im großen Feld | jede Zeile |
 | `OrderBy` | ihre Sortierung, ohne die Worte `order by` | die Reihenfolge der Datenbank |
 
-Ist `RecordType` gesetzt, darf `Sql` **leer** sein — der einzige Fall, in dem
-eine leere Anweisung zulässig ist, und er bedeutet: *beim Aufruf erzeugen*.
+Bei einem `Orm`-Schlüssel ist `Sql` **leer** — der einzige Fall, in dem eine
+leere Anweisung zulässig ist, und er bedeutet: *beim Aufruf erzeugen*. Ein
+`Orm`-Schlüssel mit Statement wird abgelehnt.
 
 Eine Template-Datei aus der Zeit vor diesen Spalten behält ihre Zeilen und
 bekommt sie als NULL, was jeder Leser als *nicht deklariert* auffasst. An einer
@@ -1230,7 +1232,8 @@ Zeile, die beides hat, lehnt der Server ab, und der Editor sagt es.
 
 | | schickt | liefert | Methode |
 |---|---|---|---|
-| `Orm…Add` / `Orm…Update` | den ganzen Record | einen Status | `WriteRecordForAction` |
+| `Orm…Add` | den ganzen Record | die gespeicherte Zeile, mit Schlüssel | `AddRecordForAction` |
+| `Orm…Update` | den ganzen Record | einen Status | `WriteRecordForAction` |
 | `Orm…Retrieve…` | die Werte des where | die Zeilen, als Array desselben Typs | `GetJsonFromAction` |
 | `Orm…Delete` | den Schlüssel | einen Status | `WriteDataForAction` |
 
@@ -1242,41 +1245,68 @@ Record in ein Retrieve zu schicken wird abgelehnt, und ein Record-Schlüssel
 ohne die `Orm`-Marke ebenso — *„takes a record but does not start with ORM"*
 im Log.
 
-### Wenn die Konvention nicht passt
+### Add gibt zurück, was es geschrieben hat
 
-Ein anderer Tabellenname, ein zusammengesetzter Schlüssel, eine zusätzliche
-Bedingung, ein Insert, der seine `ID` selbst nennen muss — dann schreibt man
-die Anweisung, mit **benannten** Platzhaltern:
+mORMots `Add` liefert die neue ID und schreibt sie in das übergebene Objekt.
+Hier antwortet ein `Orm…Add` mit der **ganzen Zeile**, die die Datenbank
+gespeichert hat, und der Client lädt sie in den Record zurück, den er
+geschickt hat:
 
-```sql
-update Customer set Name = :Name, City = :City where ID = :ID;
+```pascal
+cust.ID := 0; cust.Name := 'Neu GmbH'; cust.City := 'Olpe';
+status := AddRecord('OrmTDtoCustomerAdd', cust, TypeInfo(TDtoCustomer));
+// cust.ID ist jetzt der Schlüssel, den die Datenbank vergeben hat
 ```
 
-Der Server ersetzt jedes `:Name` durch `?` und bindet das Feld gleichen
-Namens. Ein Umsortieren der Record-Felder kann die Werte nicht stillschweigend
-verschieben, ein Platzhalter darf mehrfach vorkommen, und `:Name` zu `?` zu
-machen ist eine Ersetzung innerhalb einer bereits registrierten Anweisung.
+Die Zeile kommt **im selben Statement** zurück, und darauf kommt es an:
 
-`OrmTDtoCustomerUpdateNameCity` in diesem Beispiel ist dieser längere Weg, neben den
-drei erzeugten Schlüsseln, damit beides nebeneinander zu sehen ist.
+```
+SQLite, PostgreSQL:  insert into Customer (Name, City) values (?, ?)
+                       returning ID, Name, City;
+SQL Server:          insert into Customer (Name, City)
+                       output inserted.ID, inserted.Name, inserted.City
+                       values (?, ?);
+```
 
-Den Anfang macht im Editor *SQL ins Feld erzeugen*: der Knopf schreibt das
-erzeugte Statement ins SQL-Feld und nimmt den Haken bei *SQL beim Aufruf
-erzeugen* wieder weg. Bei einem Record mit dreißig Feldern ist das der
-Unterschied zwischen „diesen Weg gibt es" und „diesen Weg nimmt man auch".
-Was dabei herauskommt, ist ein Entwurf zum Weiterschreiben, kein fertiger
-Satz: für Insert und Update der ganze Satz, in der `:Namen`-Form und nicht mit
-`?` — ein geschriebenes Record-Statement mit Fragezeichen wird abgelehnt, weil
-niemand sagen könnte, welches Feld an welchem hängt.
+Ein zweites Select nach dem Insert findet „die höchste ID", und das ist die
+Zeile eines anderen, sobald zwei gleichzeitig schreiben. mORMots eigener Weg -
+nach einem `select max(ID)` im Server hochzählen - setzt voraus, dass sonst
+niemand in die Tabelle schreibt, und das stimmt in einer gewachsenen Datenbank
+nie. Hier vergibt die Datenbank den Schlüssel, und dasselbe Statement liest
+ihn. Zurück kommt jede Spalte des Records, also auch ein Vorgabewert, den die
+Tabelle einsetzt. Welche Schreibweise gilt, entscheidet, was die Verbindung
+über sich sagt (`ReturningFor`), nicht das Profil.
 
-Retrieve und Delete bietet der Knopf nicht an: sie tragen kein eigenes
-Statement (siehe oben), und bei einem Retrieve ist das Feld ohnehin schon sein
-where.
+Auf der Leitung ist das `AddRecordForAction(Action, Json, var Row)`, neben
+`WriteRecordForAction`, das bleibt, wie es war: ein Update antwortet mit
+seinem Status und sonst nichts. Ein natürlicher Schlüssel -
+`OrmTDtoArtikelRowAdd`, bei dem der Client die `ArtNr` selbst schickt - kommt
+so zurück, wie er geschickt wurde, wie bei mORMots `Add` mit `ForceID`. Auf
+MySQL, das diese Klausel nicht kennt, läuft der Insert trotzdem und meldet
+seinen Status; der Record bleibt dann, wie er geschickt wurde.
 
-Ab dann trägt das Template sein eigenes Statement und folgt dem Recordtyp
-nicht mehr — ein neues Feld im Record erreicht ein erzeugtes Statement von
-selbst und dieses gar nicht. Der Editor sagt das beim Übernehmen, statt es
-später herausfinden zu lassen.
+### Wenn die Konvention nicht passt
+
+Ein Orm-Schlüssel trägt nie ein eigenes Statement. Früher ging das - mit
+`:Namen`-Platzhaltern, gefüllt aus den Feldern des Records - und das war der
+Ausweg für alles, was die Konvention nicht sagen konnte. Was davon übrig ist,
+hat jetzt einen eigenen Platz:
+
+* **Eine andere Tabelle.** Die Spalte `TableName` nennt sie; leer heißt wie
+  bisher der Recordtyp ohne `TDto` und `Row`. Das ist, was bei mORMot der
+  externe Tabellenname einer `TOrm`-Klasse ist, und so schreibt man auch ein
+  **Teil-Update**: ein Record aus zwei Feldern, `TDtoKundeName = ID, Name`,
+  mit `TableName = Customer` erzeugt
+  `update Customer set Name = ? where ID = ?` und fasst keine andere Spalte an.
+* **Eine andere Schlüsselspalte.** `KeyField`, wie bisher.
+* **Ein zusammengesetzter Schlüssel, eine zusätzliche Bedingung, ein Join.**
+  Kein ORM-Aufruf, und er tut auch nicht mehr so: ein gewöhnliches Template
+  ohne die `Orm`-Marke, mit `?` und Werteliste. Seine Zeilen lädt der Client
+  trotzdem in einen Record.
+
+Eine Zeile, die trotzdem ein Statement hat, lehnt der Server ab, und der
+Editor sagt es beim Laden - das alte Statement steht im Log, damit ein
+Tabellenname oder eine Bedingung daraus von Hand übernommen werden kann.
 
 **Die Typen überleben.** `TDtoInvoiceRow.InvoiceDate` ist ein echtes
 `TDateTime` und `Amount` ein echtes `currency`, und beide werden als solche
@@ -1488,10 +1518,11 @@ schreibt es mit einem Druck in die Spalte, aus der der Sammellauf und der Weg
 über den Server es später wieder nehmen.
 
 In die Parameterliste geht es nicht, und das ist Absicht. Der erzeugte
-Schreibvorgang trägt `:Namen`, keine Fragezeichen; die füllt der Server aus dem
-Record, und ein Record-Template mit `?` lehnt die Domänenschicht ab. Werte in
-einer Liste, die dieser Lauf nie liest, wären ein Feld, das etwas anderes
-verspricht, als es hält.
+Schreibvorgang bindet seine Werte aus den Feldern des Records, beim Namen, und
+nie aus einer Liste. Werte in einer Liste, die dieser Lauf nie liest, wären
+ein Feld, das etwas anderes verspricht, als es hält. Ein Insert zeigt die
+Zeile, die er zurückbekommen hat, im Reiter Tabelle, so wie ein Select seine
+Zeilen zeigt.
 
 Das sagt, woher die Werte kommen, und nicht, dass so ein Template nicht
 testbar wäre. *Testen* sucht den Record deshalb dort, wo das Fenster ihn zeigt:

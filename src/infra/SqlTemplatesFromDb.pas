@@ -55,12 +55,13 @@ const
     '  CallerScope text,' +
     '  Filter      text,' +
     '  OrderBy     text,' +
+    '  TableName   text,' +
     '  ReadGroups  integer,' +
     '  WriteGroups integer);';
 
   { added later than the first two, so an older file is brought forward
     rather than rejected }
-  TEMPLATE_ADDED_COLUMNS: array[0..10] of RawUtf8 = (
+  TEMPLATE_ADDED_COLUMNS: array[0..11] of RawUtf8 = (
     'ParamTypes text',
     'ReadGroups integer',
     'WriteGroups integer',
@@ -71,7 +72,8 @@ const
     'Filter text',
     'OrderBy text',
     'Rules text',
-    'TestBounds text');
+    'TestBounds text',
+    'TableName text');
 
 /// add any column this version knows and the file does not
 // - an older file keeps its rows and gains the new columns as NULL, which
@@ -191,7 +193,7 @@ begin
       MigrateTemplateDb(props);
       rows := props.Execute('select ActionKey, Sql, ParamTypes, ' +
         'RecordType, RecordDecl, KeyField, ReadGroups, WriteGroups, ' +
-        'CallerScope, Filter, OrderBy, Rules, TestBounds ' +
+        'CallerScope, Filter, OrderBy, Rules, TestBounds, TableName ' +
         'from SqlTemplate order by ActionKey;',
         []);
       if rows = nil then
@@ -214,6 +216,7 @@ begin
         Recs[n].OrderBy := rows.ColumnUtf8(10);
         Recs[n].Rules := rows.ColumnUtf8(11);
         Recs[n].TestBounds := rows.ColumnUtf8(12);
+        Recs[n].TableName := rows.ColumnUtf8(13);
         inc(n);
       end;
       SetLength(Recs, n);

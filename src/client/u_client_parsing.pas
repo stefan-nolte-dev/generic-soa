@@ -40,6 +40,16 @@ function ParseDynArrayJson(const Action: RawUtf8; const Bounds: variant;
 function WriteRecord(const Action: RawUtf8; const Rec;
   TI: PRttiInfo): TSqlStatus;
 
+/// insert one whole record, and load what the database stored back into it
+// - the Add of mORMot's ORM: afterwards Rec holds the key the database gave
+// it and every default the table filled, not only what was sent. So a record
+// that is added is the record that is in the table - a child row can be
+// written against its key at once, with no second query and no guess
+// - on a database that cannot return the row in the same statement (MySQL)
+// the status is still that of the insert, and Rec stays as it was sent
+function AddRecord(const Action: RawUtf8; var Rec;
+  TI: PRttiInfo): TSqlStatus;
+
 /// fetch one row by its key into a record
 // - the counterpart of WriteRecord, and deliberately NOT its mirror image:
 // nothing is sent but the key. The columns to read are the fields of the
@@ -84,6 +94,21 @@ begin
     into a variant reaches the server as a plain string and is bound as text.
     Serialised from the record and read back into it, it stays a date. }
   result := SqlTool.WriteRecordForAction(Action, SaveJson(Rec, TI));
+end;
+
+function AddRecord(const Action: RawUtf8; var Rec;
+  TI: PRttiInfo): TSqlStatus;
+var
+  row: RawUtf8;
+begin
+  row := ''; // var parameter on the wire, as in ParseDynArrayJson
+  result := SqlTool.AddRecordForAction(Action, SaveJson(Rec, TI), row);
+  if (result = sqlOk) and
+     (row <> '') and
+     not RecordLoadJson(Rec, row, TI) then
+    { the row was written and came back, so this is the two sides
+      disagreeing about the shape of the record - as in RetrieveRecord }
+    result := sqlBadParams;
 end;
 
 function RetrieveRecord(const Action: RawUtf8; const Key: variant;
