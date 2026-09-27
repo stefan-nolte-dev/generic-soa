@@ -174,7 +174,7 @@ src/infra/      InfraSqlServices.pas        what the layer above needs from here
 src/serv/app/   ServSqlTemplates.pas        startup — sees everything
 src/client/     ClientDtos.pas              read-only records, client side only
                 AppSqlClient.pas            connection
-                u_client_parsing.pas        ParseDynArray, WriteRecord
+                u_client_parsing.pas        ParseDynArray, WriteRecord, AddRecord
 src/clientlaz/ u_main.pas / .lfm           one button, one memo
 src/editor/     EditorDb.pas                the editor's own connection
                 SqlBounds.pas               typed parameters, and inlining them
@@ -583,12 +583,14 @@ had to move to add them** — which is the claim the table was there to make.
 | `RecordType` | the record a record write expects, by name | not a record write |
 | `RecordDecl` | the fields of that record, as mORMot's textual RTTI | the type has to be compiled into the server |
 | `KeyField` | the key column of a generated statement | `ID` |
+| `TableName` | the table a generated statement names | the record type without `TDto` and `Row` |
 | `CallerScope` | bind the caller's identity to the last parameter | client sets every value |
 | `Filter` | the where clause of a generated retrieve, without the word `where`; the editor shows it in the big box | every row |
 | `OrderBy` | its order, without the words `order by` | whatever order the database gives |
 
-With `RecordType` set, `Sql` may be **empty** — that is the one case an empty
-statement is allowed, and it means *generate it on arrival*.
+For an `Orm` key `Sql` is **empty** — that is the one case an empty statement
+is allowed, and it means *generate it on arrival*. An `Orm` key with a
+statement is refused.
 
 A template file written before these columns existed keeps its rows and gains
 them as NULL, which every reader treats as *not declared*. Verified on a
@@ -1168,7 +1170,8 @@ that has both is refused by the server, and the editor says so.
 
 | | sends | returns | method |
 |---|---|---|---|
-| `Orm…Add` / `Orm…Update` | the whole record | a status | `WriteRecordForAction` |
+| `Orm…Add` | the whole record | the row as stored, key included | `AddRecordForAction` |
+| `Orm…Update` | the whole record | a status | `WriteRecordForAction` |
 | `Orm…Retrieve…` | the where clause's values | the rows, as an array of that type | `GetJsonFromAction` |
 | `Orm…Delete` | the key | a status | `WriteDataForAction` |
 
@@ -1179,39 +1182,64 @@ delete on a missing key answers `sqlNothingWritten`. Sending a record into a
 retrieve is refused, and so is a record key without the `Orm` mark — *"takes a
 record but does not start with ORM"* in the log.
 
-### When the convention does not fit
+### Add hands back what it wrote
 
-A different table name, a composite key, an extra condition, an insert that
-has to name its `ID` — then write the statement, with **named** placeholders:
+mORMot's `Add` returns the new ID and writes it into the object it was given.
+Here an `Orm…Add` answers with the **whole row** the database stored, and the
+client loads it back into the record it sent:
 
-```sql
-update Customer set Name = :Name, City = :City where ID = :ID;
+```pascal
+cust.ID := 0; cust.Name := 'Neu GmbH'; cust.City := 'Olpe';
+status := AddRecord('OrmTDtoCustomerAdd', cust, TypeInfo(TDtoCustomer));
+// cust.ID is now the key the database gave the row
 ```
 
-The server replaces each `:Name` by `?` and binds the field of that name.
-Reordering the fields of the record cannot silently shift the values, a
-placeholder may appear more than once, and expanding `:Name` to `?` is a
-substitution inside a statement that was already registered.
+The row comes back **in the same statement**, which is the point:
 
-The editor's *SQL ins Feld erzeugen* gives that statement its first draft: the
-button writes the generated statement into the SQL box and unticks *generate
-on arrival*. For a record with thirty fields that is the difference between
-"this way out exists" and "this way out gets taken". What comes out is a draft
-to go on writing, not a finished sentence: an insert and an update come out
-whole, in the `:Name` form rather than with `?` - a written record statement
-carrying question marks is refused, because nothing could say which field goes
-with which.
+```
+SQLite, PostgreSQL:  insert into Customer (Name, City) values (?, ?)
+                       returning ID, Name, City;
+SQL Server:          insert into Customer (Name, City)
+                       output inserted.ID, inserted.Name, inserted.City
+                       values (?, ?);
+```
 
-A retrieve and a delete are not offered this way: they carry no statement of
-their own (see above), and for a retrieve the box already is its where clause.
+A second select after the insert finds "the highest ID", which is somebody
+else's row as soon as two writers are at work. mORMot's own way - counting the
+ID up in the server after one `select max(ID)` - assumes nothing else writes
+to the table, which in a grown database is never true. Here the database hands
+out the key, and the same statement reads it. What comes back is every column
+of the record, so a default the table fills arrives too. The spelling is chosen
+by what the connection says it is (`ReturningFor`), not by the profile.
 
-From then on the template carries its own statement and no longer follows the
-record type - a field added to the record reaches a generated statement by
-itself and this one not at all. The editor says so when handing it over,
-rather than leaving it to be found out later.
+On the wire this is `AddRecordForAction(Action, Json, var Row)`, next to
+`WriteRecordForAction`, which stays as it was: an update answers with its
+status and nothing else. A natural key - `OrmTDtoArtikelRowAdd`, where the
+client sends `ArtNr` itself - comes back as it was sent, like mORMot's `Add`
+with `ForceID`. On MySQL, which has no such clause, the insert still runs and
+reports its status; the record simply stays as it was sent.
 
-`OrmTDtoCustomerUpdateNameCity` in this sample is that longer way, next to the three
-generated keys, so both are visible side by side.
+### When the convention does not fit
+
+An Orm key never carries a statement of its own. It used to - with `:Name`
+placeholders, filled from the record's fields - and that was the way out for
+everything the convention could not say. What is left of it now has a proper
+place:
+
+* **Another table.** The `TableName` column names it; empty means the record
+  type without `TDto` and `Row`, as before. This is what mORMot's external
+  table name is for a `TOrm` class, and it is also how a **partial update** is
+  written: a record of two fields, `TDtoKundeName = ID, Name`, with
+  `TableName = Customer`, generates
+  `update Customer set Name = ? where ID = ?` and touches no other column.
+* **Another key column.** `KeyField`, as before.
+* **A composite key, an extra condition, a join.** Not an ORM call, and it no
+  longer pretends to be one: an ordinary template without the `Orm` mark,
+  with `?` and a value list. Its rows still load into a record on the client.
+
+A row that has a statement anyway is refused by the server, and the editor
+says so when it is loaded - the old statement goes to the log, so a table name
+or a condition in it can be carried over by hand.
 
 **The types survive.** `TDtoInvoiceRow.InvoiceDate` is a real `TDateTime` and
 `Amount` a real `currency`, and both are bound as such. This is the reason the
@@ -1409,10 +1437,10 @@ exactly what a client sends, and *JSON als TestBounds* puts it into the column
 in one press, where the sweep and the run through the server pick it up again.
 
 It does not go into the parameter list, and that is deliberate. The generated
-write carries `:Names`, not question marks; the server fills those from the
-record, and a record template with `?` is refused by the domain layer. Values
-in a list this run never reads would be a field that promises something it
-does not keep.
+write binds its values from the record's fields, by name, and never from a
+list. Values in a list this run never reads would be a field that promises
+something it does not keep. An insert shows the row it got back, in the table
+tab, the way a select shows its rows.
 
 That says where the values come from, not that such a template cannot be
 tested. *Testen* therefore looks for the record where the window shows it: the

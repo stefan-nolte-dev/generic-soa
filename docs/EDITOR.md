@@ -67,8 +67,10 @@ shows which kind the key reads as, and the statement the server will build.
 2. Fill in **Record-Felder** unless the type is compiled into the server (one
    field per line, as in Pascal).
 3. Set **Schlüssel** if the key column is not `ID` — update and delete use it.
-4. Either tick **SQL beim Aufruf erzeugen** (no statement of its own) or press
-   **SQL ins Feld erzeugen** and edit the draft.
+4. Set **Tabelle** if the table is not the record type's name without `TDto`
+   and `Row` — e.g. a record of two fields writing into `Customer` is a
+   partial update. There is nothing to write in the SQL box: an Orm key's
+   statement is always generated, and the line under the box shows it.
 5. **Record-Werte eingeben…** opens a form built from the type's fields. After
    *OK* the write runs at once — rolled back if the box is ticked.
 6. **Speichern**, **Server neu laden**.
@@ -83,6 +85,9 @@ About the record dialog:
   *geht als JSON raus* box, then the last entry in the dialog, then the
   *TestBounds* column). The **parameter list** is never read for it — a
   record's values come from the record.
+* An **add** answers with the row the database stored — the key it gave and
+  every default it filled. It stands in the **Tabelle** tab, rolled back or
+  not, and a client gets the same row back through `AddRecord`.
 
 ---
 

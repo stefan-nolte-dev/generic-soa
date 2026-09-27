@@ -314,7 +314,8 @@ begin
 end;
 
 function Perform(Db: TEditorDb; const Template: TSqlRec;
-  const Bound: variant; Ending: TWriteEnd): TRunResult; forward;
+  const Bound: variant; Ending: TWriteEnd;
+  const RecordJson: RawUtf8 = ''): TRunResult; forward;
 
 function Run(Db: TEditorDb; const ActionKey, Sql: RawUtf8;
   const Bounds: TBoundArray; Mode: TRunMode;
@@ -408,13 +409,15 @@ end;
   record. By the time it runs, all three are a resolved template and a list of
   bound values - which is exactly what the server has at this point too. }
 function Perform(Db: TEditorDb; const Template: TSqlRec;
-  const Bound: variant; Ending: TWriteEnd): TRunResult;
+  const Bound: variant; Ending: TWriteEnd;
+  const RecordJson: RawUtf8 = ''): TRunResult;
 var
   rec: TSqlRec;
   exec: ISqlTemplateExec;
   conn: TSqlDBConnection;
-  kept: boolean;
-  generated, msg: RawUtf8;
+  kept, returns: boolean;
+  generated, msg, row: RawUtf8;
+  shown: variant; // the record's values, bound only to show the statement
 begin
   rec := Template;
   result := default(TRunResult);
@@ -432,10 +435,20 @@ begin
     case RecordKindOf(rec) of
       raRetrieve:
         result.Kind := skSelect;
+      raInsert,
+      raUpdate,
       raDelete:
         result.Kind := skWrite;
     end;
-    if GeneratedSqlFor(rec, generated, msg) = rbOk then
+    if RecordJson <> '' then
+    begin
+      { the statement as the connected database will get it - an insert
+        with its returning clause - by the binding the server itself runs }
+      if BindRecordJson(rec, RecordJson, ReturningFor(Db.Props.Dbms),
+           generated, shown, returns, msg) = rbOk then
+        result.ExecutedSql := generated;
+    end
+    else if GeneratedSqlFor(rec, generated, msg) = rbOk then
       result.ExecutedSql := generated;
   end
   else
@@ -465,7 +478,16 @@ begin
       kept := false;
       conn.StartTransaction;
       try
-        result.Status := exec.Execute(rec, Bound);
+        if RecordJson <> '' then
+        begin
+          { a record: the server's own call, and what an insert handed back
+            is shown as the row it is }
+          result.Status := exec.ExecuteRecord(rec, RecordJson, row);
+          if row <> '' then
+            result.Json := '[' + row + ']';
+        end
+        else
+          result.Status := exec.Execute(rec, Bound);
         { The only place in this unit that commits, and it takes two things
           to get here: the caller asked for it, and the statement ran.
           Everything else - a failure, an exception, a caller that said
@@ -666,9 +688,7 @@ end;
 function RunRecord(Db: TEditorDb; const Rec: TSqlRec;
   const Json: RawUtf8; Ending: TWriteEnd): TRunResult;
 var
-  one: TSqlRec;
-  bound: variant;
-  expanded, msg: RawUtf8;
+  none: variant; // a record binds its own values; there is no list
 begin
   result := default(TRunResult);
   result.Status := sqlFailed;
@@ -680,19 +700,10 @@ begin
     result.Message := 'Not connected to a database.';
     exit;
   end;
-  { the server's own call, with the server's own refusals: an unmarked key, a
-    type nobody knows, a declaration that does not parse }
-  if BindRecordJson(Rec, Json, expanded, bound, msg) <> rbOk then
-  begin
-    result.Message := msg;
-    exit;
-  end;
-  one := Rec;
-  one.Sql := expanded;
-  { the values came out of a typed record, so there is nothing to coerce -
-    the same line stands in TSqlTemplateExec.ExecuteRecord }
-  one.ParamTypes := '';
-  result := Perform(Db, one, bound, Ending);
+  { the server's own call, with the server's own refusals - an unmarked key,
+    a type nobody knows, a statement where none belongs - inside the
+    transaction the Rollback box decides the end of }
+  result := Perform(Db, Rec, none, Ending, Json);
 end;
 
 end.

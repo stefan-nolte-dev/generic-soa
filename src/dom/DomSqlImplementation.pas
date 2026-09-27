@@ -105,7 +105,7 @@ type
     function WriteData(const Caller: TSqlCaller; const Action: RawUtf8;
       const Bounds: variant): TSqlStatus;
     function WriteRecord(const Caller: TSqlCaller; const Action: RawUtf8;
-      const Json: RawUtf8): TSqlStatus;
+      const Json: RawUtf8; var Row: RawUtf8): TSqlStatus;
     function AvailableActions(const Caller: TSqlCaller): TRawUtf8DynArray;
     function ReloadTemplates(const Caller: TSqlCaller): TSqlStatus;
     function TemplateCount: integer;
@@ -371,10 +371,11 @@ end;
   next record arrives. The JSON is passed down untouched - what the fields
   are, and what statement they make, is decided one layer below. }
 function TDomSqlTool.WriteRecord(const Caller: TSqlCaller;
-  const Action: RawUtf8; const Json: RawUtf8): TSqlStatus;
+  const Action: RawUtf8; const Json: RawUtf8; var Row: RawUtf8): TSqlStatus;
 var
   rec: TSqlRec;
 begin
+  Row := '';
   result := Resolve(Caller, Action, {write=}true, rec);
   if result <> sqlOk then
     exit;
@@ -395,7 +396,7 @@ begin
       'positions, which a record write has none of', [Action, rec.Rules]);
     exit(sqlFailed);
   end;
-  result := fExec.ExecuteRecord(rec, Json);
+  result := fExec.ExecuteRecord(rec, Json, Row);
 end;
 
 function TDomSqlTool.AvailableActions(const Caller: TSqlCaller): TRawUtf8DynArray;

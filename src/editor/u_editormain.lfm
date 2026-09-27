@@ -445,15 +445,6 @@ object FormEditor: TFormEditor
       Caption = 'Gegenprobe: Werte einsetzen statt binden (bindet nichts)'
       TabOrder = 8
     end
-    object CheckGenerateSql: TCheckBox
-      Left = 480
-      Height = 18
-      Top = 288
-      Width = 267
-      Caption = 'SQL beim Aufruf erzeugen (kein Template)'
-      TabOrder = 14
-      OnChange = CheckGenerateSqlChange
-    end
     object ButtonRecordDialog: TButton
       Left = 760
       Height = 27
@@ -480,14 +471,23 @@ object FormEditor: TFormEditor
       OnChange = SqlPartChange
       TabOrder = 15
     end
-    object ButtonSqlFromRecord: TButton
-      Left = 1000
-      Height = 27
-      Top = 284
-      Width = 166
-      Caption = 'SQL ins Feld erzeugen'
+    object LabelTableName: TLabel
+      Left = 932
+      Height = 16
+      Top = 318
+      Width = 50
+      Caption = 'Tabelle:'
+      ParentColor = False
+    end
+    object EditTableName: TEdit
+      Left = 990
+      Height = 21
+      Top = 314
+      Width = 176
+      Anchors = [akTop, akLeft, akRight]
+      OnChange = SqlPartChange
       TabOrder = 22
-      OnClick = ButtonSqlFromRecordClick
+      TextHint = 'leer = aus dem Record-Typ'
     end
     object LabelOrderBy: TLabel
       Left = 470

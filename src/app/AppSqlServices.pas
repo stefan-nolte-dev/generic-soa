@@ -43,6 +43,18 @@ type
     // weiterer Code notwendig ist.
     function WriteRecordForAction(const Action: RawUtf8;
       const Json: RawUtf8): TSqlStatus;
+    /// the same write for an Orm…Add, answered with the row it wrote
+    // - Row is a JSON object of the record's columns as the database stored
+    // them: the key it gave, and every default it filled. What mORMot's Add
+    // does with the ID, for the whole record - the client loads it back into
+    // the record it sent, and the record is then what is in the table
+    // - Row stays '' for an update, and on a database that cannot hand the
+    // row back in the same statement (MySQL); the status says whether the
+    // write ran either way
+    // - Row is var and not out, like Json in GetJsonFromAction: on the wire
+    // a var parameter is read on entry, so the caller sets it to ''
+    function AddRecordForAction(const Action: RawUtf8; const Json: RawUtf8;
+      var Row: RawUtf8): TSqlStatus;
     /// the action keys this server is able to answer
     // - costs nothing: the registry knows its own keys
     function AvailableActions: TRawUtf8DynArray;

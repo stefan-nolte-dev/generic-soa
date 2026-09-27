@@ -47,9 +47,9 @@ type
     /// the action key a client names to run this statement
     ActionKey: RawUtf8;
     /// the statement itself, with ? for every parameter
-    // - or with :Name placeholders when RecordType is set
-    // - or empty, when RecordType is set and the statement is to be generated
-    // from it and from the action key - see SqlRecordBind
+    // - empty for every Orm key: its statement is generated from the action
+    // key, the record type and the columns below - see SqlRecordBind - and
+    // one of its own is refused rather than preferred
     Sql: RawUtf8;
     /// what each ? is, e.g. 'text,int,date' - empty means no coercion
     // - how a date survives the trip as JSON; see SqlParamTypes
@@ -94,6 +94,13 @@ type
     /// the order of a generated retrieve, without the words "order by"
     // - e.g. 'Name, City' - empty means the database's own order
     OrderBy: RawUtf8;
+    /// the table a generated statement names - empty means the record type
+    /// without its TDto prefix and Row suffix
+    // - what mORMot's external table name is for a TOrm class: the record
+    // type says which columns, this says where they are. A record of two
+    // fields writing into the Customer table is a partial update, and a grown
+    // database whose tables are called tbl_Kunde needs no DTO named after it
+    TableName: RawUtf8;
     /// the key column of a generated statement - empty means ID
     // - an update matches on it, an insert leaves it to the database
     // - the convention held in the demo and holds nowhere else: in a grown

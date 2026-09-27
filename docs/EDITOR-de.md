@@ -67,8 +67,11 @@ Art der Schlüssel gelesen wird und welches Statement der Server daraus baut.
    (eine Feldzeile je Zeile, wie in Pascal).
 3. **Schlüssel** setzen, wenn die Schlüsselspalte nicht `ID` heißt — Update
    und Delete verwenden ihn.
-4. Entweder **SQL beim Aufruf erzeugen** anhaken (kein eigenes Statement) oder
-   **SQL ins Feld erzeugen** drücken und den Entwurf bearbeiten.
+4. **Tabelle** setzen, wenn die Tabelle nicht wie der Record-Typ ohne `TDto`
+   und `Row` heißt — ein Record aus zwei Feldern, der in `Customer` schreibt,
+   ist zum Beispiel ein Teil-Update. Ins SQL-Feld gibt es nichts zu schreiben:
+   das Statement eines Orm-Schlüssels wird immer erzeugt, die Zeile unter dem
+   Feld zeigt es.
 5. **Record-Werte eingeben…** öffnet ein Formular aus den Feldern des Typs.
    Nach *OK* läuft der Schreibvorgang sofort — mit Rollback, wenn angehakt.
 6. **Speichern**, **Server neu laden**.
@@ -84,6 +87,10 @@ Zum Record-Dialog:
   Reihenfolge: das Feld *geht als JSON raus*, dann die letzte Eingabe im
   Dialog, dann die Spalte *TestBounds*). Die **Parameterliste** wird dabei nie
   gelesen — die Werte eines Records kommen aus dem Record.
+* Ein **Add** antwortet mit der Zeile, die die Datenbank gespeichert hat — dem
+  vergebenen Schlüssel und jedem Vorgabewert, den sie eingesetzt hat. Sie
+  steht im Reiter **Tabelle**, zurückgerollt oder nicht, und ein Client
+  bekommt dieselbe Zeile über `AddRecord` zurück.
 
 ---
 

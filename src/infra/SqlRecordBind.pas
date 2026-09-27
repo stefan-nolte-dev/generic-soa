@@ -38,11 +38,17 @@ unit SqlRecordBind;
   names and its type name - and the values are still bound, so this stays as
   far from "send me any SQL" as the rest.
 
-  WITH a statement the placeholders are by NAME, for the cases the convention
-  does not fit: another table name, a composite key, an extra condition.
+  There is no "with a statement". An Orm key never carries one: another
+  table name is the TableName column, and what is left over - a composite
+  key, an extra condition, a join - is an ordinary template with ? and a
+  value list, not a record call that pretends to be one.
 
-  Either way the record is what restores the types: JSON has four, a Customer
-  row has an integer ID and an Invoice a TDateTime and a currency.
+  An insert hands its row back in the same statement where the database can
+  say so ("returning", SQL Server's "output inserted."), which is how the
+  caller learns the key the database gave it and any default it filled.
+
+  The record is what restores the types: JSON has four, a Customer row has an
+  integer ID and an Invoice a TDateTime and a currency.
 
   Two lines are easy to get wrong, both marked below - AllocMem, or a RawUtf8
   field starts out pointing at old heap, and ValueFinalize, or every string
@@ -70,8 +76,7 @@ type
     rbNoRecordType,
     rbUnknownRecordType,
     rbBadRecordDecl,
-    rbNoPlaceholder,
-    rbQuestionMark,
+    rbOwnStatement,
     rbUnknownField,
     rbBadJson,
     rbNotOrmAction,
@@ -109,23 +114,6 @@ function ResolveRecordType(const Rec: TSqlRec; out rc: TRttiCustom;
 function GeneratedSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
   out Msg: RawUtf8): TRecordBindResult;
 
-/// the same statement in the form a template can carry
-// - one difference, and it matters: an insert and an update bind their ?
-// from the record's fields by position, and a WRITTEN statement cannot say
-// that - it names its fields as :Name placeholders, and a written record
-// statement carrying ? is refused (rbQuestionMark). So for those two kinds
-// the ? are put back as the names they stand for, and what comes out can be
-// edited, saved and run
-// - a delete binds nothing from a record: its ? is the caller's key and
-// stays ?
-// - a retrieve is refused: it carries no statement, only a where clause and
-// an order, and the select around them is always the record type's
-// - for the editor, which offers this as the starting point for a statement
-// the convention cannot express - a big record is not one anybody wants to
-// type out
-function EditableSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
-  out Msg: RawUtf8): TRecordBindResult;
-
 /// the select that would fetch the row this template is about
 // - the template's OWN verb and where clause are not consulted: an update is
 // asked for the row it is about to overwrite, and that is a select on the
@@ -161,6 +149,14 @@ type
     dcText,
     dcBlob);
 
+  /// how an insert hands back the row it wrote, in the same statement
+  // - irNone where the database has no such clause: the insert still runs,
+  // and the caller gets its status and no row
+  TInsertReturning = (
+    irNone,
+    irReturning,
+    irOutput);
+
   /// everything two dialects spell differently, and nothing else
   TDdlDialectDef = record
     /// what the drop-down shows
@@ -177,6 +173,10 @@ type
     /// put in FRONT of the whole statement, where it does not - % is the
     // table name
     Guard: RawUtf8;
+    /// how a generated insert returns its row - "insert ... returning" or
+    // SQL Server's "output inserted.", read in the same statement so no
+    // other writer's row can be mistaken for this one
+    Returning: TInsertReturning;
   end;
 
 const
@@ -187,7 +187,9 @@ const
        'integer', 'integer', 'real', 'real', 'text', 'text', 'blob');
      AutoKey: '% integer primary key autoincrement';
      IfNotExists: 'if not exists ';
-     Guard: ''),
+     Guard: '';
+     { since 3.35; the static library mORMot links is newer than that }
+     Returning: irReturning),
     (Name: 'SQL Server';
      Column: (
        'int', 'bigint', 'float', 'money', 'datetime',
@@ -201,7 +203,8 @@ const
        statement of its own in front of it }
      IfNotExists: '';
      Guard: 'if not exists (select * from sys.objects' + #13#10 +
-            '  where object_id = object_id(''%'') and type = ''U'')'#13#10),
+            '  where object_id = object_id(''%'') and type = ''U'')'#13#10;
+     Returning: irOutput),
     (Name: 'PostgreSQL';
      Column: (
        'integer', 'bigint', 'double precision', 'numeric(19,4)', 'timestamp',
@@ -210,7 +213,8 @@ const
        'text', 'bytea');
      AutoKey: '% serial primary key';
      IfNotExists: 'if not exists ';
-     Guard: ''),
+     Guard: '';
+     Returning: irReturning),
     { MariaDB is a dialect of its own to mORMot, but not to this table: the
       create table it wants is the same one, down to auto_increment }
     (Name: 'MySQL / MariaDB';
@@ -219,7 +223,10 @@ const
        'mediumtext', 'mediumblob');
      AutoKey: '% int auto_increment primary key';
      IfNotExists: 'if not exists ';
-     Guard: ''));
+     Guard: '';
+     { MariaDB has "returning" since 10.5, MySQL has none at all - so the one
+       both understand is none }
+     Returning: irNone));
 
   /// a key the caller supplies rather than the database - % name, % type
   // - the same three words everywhere, so it is not in the table above
@@ -257,100 +264,23 @@ function CreateTableSqlFor(const Rec: TSqlRec; Dialect: TDdlDialect;
 // - returns '' when nothing is left after the affixes are stripped
 function TableFromRecordType(const RecordType: RawUtf8): RawUtf8;
 
-/// replace every :Name in a statement by ? and report the names in order
-// - text inside '...' literals is left alone, doubled quotes included
-// - false when there is no placeholder at all: a record write that binds
-// nothing is a mistake in the template, not a no-op
-function ExpandNamedParams(const Sql: RawUtf8; out Expanded: RawUtf8;
-  out Names: TRawUtf8DynArray; out HasQuestionMark: boolean): boolean;
+/// the table a generated statement of this template names: its TableName
+// column, or what TableFromRecordType makes of the resolved type
+function TableOf(const Rec: TSqlRec; rc: TRttiCustom): RawUtf8;
 
 /// load Json into the record the template names, and bind it
-// - Expanded is the statement with ? for every :Name, or the generated one
-// - Bounds holds the values in the order the ? appear
+// - Expanded is the generated statement; Bounds holds the values in the
+// order its ? appear
+// - Returning says how the connected database hands back an inserted row;
+// for an insert it is written into Expanded, and ReturnsRow says whether it
+// was - an update, and an insert on a database without the clause, return
+// none
 // - Msg goes to the log, never to a client
 function BindRecordJson(const Rec: TSqlRec; const Json: RawUtf8;
-  out Expanded: RawUtf8; out Bounds: variant;
-  out Msg: RawUtf8): TRecordBindResult;
+  Returning: TInsertReturning; out Expanded: RawUtf8; out Bounds: variant;
+  out ReturnsRow: boolean; out Msg: RawUtf8): TRecordBindResult;
 
 implementation
-
-function IsIdentFirst(c: AnsiChar): boolean;
-  {$ifdef HASINLINE}inline;{$endif}
-begin
-  result := c in ['A'..'Z', 'a'..'z', '_'];
-end;
-
-function IsIdentChar(c: AnsiChar): boolean;
-  {$ifdef HASINLINE}inline;{$endif}
-begin
-  result := c in ['A'..'Z', 'a'..'z', '0'..'9', '_'];
-end;
-
-function ExpandNamedParams(const Sql: RawUtf8; out Expanded: RawUtf8;
-  out Names: TRawUtf8DynArray; out HasQuestionMark: boolean): boolean;
-var
-  i, b, s, n, L: PtrInt;
-  P: PAnsiChar;
-  tmp: RawUtf8;
-begin
-  Expanded := '';
-  Names := nil;
-  HasQuestionMark := false;
-  n := 0;
-  L := length(Sql);
-  P := pointer(Sql);
-  i := 0;
-  b := 0;
-  while i < L do
-    if P[i] = '''' then
-    begin
-      { a literal: nothing inside it is a placeholder, and '' is one quote }
-      inc(i);
-      while i < L do
-        if P[i] <> '''' then
-          inc(i)
-        else
-        begin
-          inc(i);
-          if (i < L) and
-             (P[i] = '''') then
-            inc(i)
-          else
-            break;
-        end;
-    end
-    else if (P[i] = ':') and
-            (i + 1 < L) and
-            IsIdentFirst(P[i + 1]) then
-    begin
-      FastSetString(tmp, P + b, i - b);
-      Expanded := Expanded + tmp + '?';
-      inc(i); // the ':'
-      s := i;
-      while (i < L) and
-            IsIdentChar(P[i]) do
-        inc(i);
-      FastSetString(tmp, P + s, i - s);
-      if n = length(Names) then
-        SetLength(Names, n + 8);
-      Names[n] := tmp;
-      inc(n);
-      b := i;
-    end
-    else
-    begin
-      { a positional ? in a record statement would want a value nobody
-        supplies, so it is reported rather than silently left standing }
-      if P[i] = '?' then
-        HasQuestionMark := true;
-      inc(i);
-    end;
-  FastSetString(tmp, P + b, L - b);
-  Expanded := Expanded + tmp;
-  SetLength(Names, n);
-  result := n > 0;
-end;
-
 
 function TableFromRecordType(const RecordType: RawUtf8): RawUtf8;
 var
@@ -367,6 +297,15 @@ begin
   if (L > 0) and
      IdemPropNameU(copy(result, L + 1, maxInt), RECORDTYPE_SUFFIX) then
     SetLength(result, L);
+end;
+
+function TableOf(const Rec: TSqlRec; rc: TRttiCustom): RawUtf8;
+begin
+  result := Rec.TableName;
+  if result = '' then
+    { rc.Name, not Rec.RecordType: the lookup ignores case, so the table
+      name should come from the declaration - tdtoartikel gives Artikel }
+    result := TableFromRecordType(rc.Name);
 end;
 
 { Every name in the generated text comes from the record's own RTTI or from
@@ -575,9 +514,7 @@ begin
   Sql := '';
   Names := nil;
   Msg := '';
-  { rc.Name, not Rec.RecordType: the lookup ignores case, so the table
-    name should come from the declaration - tdtoartikel gives Artikel }
-  table := TableFromRecordType(rc.Name);
+  table := TableOf(Rec, rc);
   if table = '' then
   begin
     Msg := FormatUtf8('no table name left of [%]', [Rec.RecordType]);
@@ -644,68 +581,6 @@ begin
   one.Filter := FormatUtf8('% = ?', [KeyFieldOf(Rec)]);
   one.OrderBy := '';
   result := GenerateKind(one, rc, raRetrieve, Sql, names, Msg);
-end;
-
-{ put the ? back as the :Names they stand for, in order - the reverse of
-  ExpandNamedParams, and the only place that direction is needed }
-function WithNamedParams(const Sql: RawUtf8;
-  const Names: TRawUtf8DynArray): RawUtf8;
-var
-  i, n: PtrInt;
-  inString: boolean;
-begin
-  result := '';
-  n := 0;
-  inString := false;
-  for i := 1 to length(Sql) do
-  begin
-    if Sql[i] = '''' then
-      inString := not inString;
-    if (Sql[i] = '?') and
-       not inString and
-       (n <= high(Names)) then
-    begin
-      result := result + ':' + Names[n];
-      inc(n);
-    end
-    else
-      result := result + Sql[i];
-  end;
-end;
-
-function EditableSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
-  out Msg: RawUtf8): TRecordBindResult;
-var
-  rc: TRttiCustom;
-  names: TRawUtf8DynArray;
-begin
-  Sql := '';
-  result := ResolveRecordType(Rec, rc, Msg);
-  if result <> rbOk then
-    exit;
-  if RecordKindOf(Rec) = raRetrieve then
-  begin
-    { A retrieve carries no statement of its own - its where clause and its
-      order are the template, and the select around them is the record
-      type's. A draft of that select would be the one thing in the box that
-      is not the template's to write }
-    Msg := FormatUtf8('% is a retrieve: write its where clause, the select ' +
-      'around it comes from %', [Rec.ActionKey, Rec.RecordType]);
-    exit(rbNoWriteKind);
-  end;
-  result := GenerateFrom(Rec, rc, Sql, names, Msg);
-  if result <> rbOk then
-    exit;
-  if names <> nil then
-    { names is nil for the kinds whose ? belong to the caller; it is filled
-      for the two whose ? come from the record, and those are the two a
-      written statement has to spell with :Names }
-    Sql := WithNamedParams(Sql, names);
-  { a draft is continued, not terminated: a semicolon in the middle of what
-    is still being written is only in the way }
-  if (Sql <> '') and
-     (Sql[length(Sql)] = ';') then
-    SetLength(Sql, length(Sql) - 1);
 end;
 
 function GeneratedSqlFor(const Rec: TSqlRec; out Sql: RawUtf8;
@@ -785,9 +660,9 @@ begin
   result := ResolveRecordType(Rec, rc, Msg);
   if result <> rbOk then
     exit;
-  { rc.Name and not Rec.RecordType, exactly as GenerateKind does it: the
-    lookup ignores case, so the table name has to come from the declaration }
-  table := TableFromRecordType(rc.Name);
+  { the same table GenerateKind names, so the create table and the
+    statements that will run against it cannot disagree about it }
+  table := TableOf(Rec, rc);
   if table = '' then
   begin
     Msg := FormatUtf8('no table name left of [%]', [Rec.RecordType]);
@@ -852,9 +727,50 @@ begin
       DDL_DIALECTS[Dialect].Name, keyfield]);
 end;
 
+{ the statement an insert becomes when it has to hand its row back: the
+  columns of the record, read from the row the database just wrote. Text
+  this unit generated a line earlier, so its shape is known - ") values ("
+  occurs once, and nothing a caller sends is in it }
+function WithReturning(const Sql: RawUtf8; rc: TRttiCustom;
+  Returning: TInsertReturning): RawUtf8;
+var
+  cols, outs: RawUtf8;
+  i, p: PtrInt;
+begin
+  result := Sql;
+  cols := '';
+  outs := '';
+  for i := 0 to rc.Props.Count - 1 do
+  begin
+    if cols <> '' then
+    begin
+      cols := cols + ', ';
+      outs := outs + ', ';
+    end;
+    cols := cols + rc.Props.List[i].Name;
+    outs := outs + 'inserted.' + rc.Props.List[i].Name;
+  end;
+  if (result <> '') and
+     (result[length(result)] = ';') then
+    SetLength(result, length(result) - 1);
+  case Returning of
+    irReturning:
+      result := FormatUtf8('% returning %;', [result, cols]);
+    irOutput:
+      begin
+        p := PosEx(') values (', result);
+        if p > 0 then
+          insert(' output ' + outs, result, p + 1);
+        result := result + ';';
+      end;
+  else
+    result := result + ';';
+  end;
+end;
+
 function BindRecordJson(const Rec: TSqlRec; const Json: RawUtf8;
-  out Expanded: RawUtf8; out Bounds: variant;
-  out Msg: RawUtf8): TRecordBindResult;
+  Returning: TInsertReturning; out Expanded: RawUtf8; out Bounds: variant;
+  out ReturnsRow: boolean; out Msg: RawUtf8): TRecordBindResult;
 var
   rc: TRttiCustom;
   prop: PRttiCustomProp;
@@ -862,51 +778,49 @@ var
   arr: TDocVariantData;
   vd: TVarData;
   buf: pointer;
-  qm: boolean;
   i: PtrInt;
 begin
   Expanded := '';
   VarClear(Bounds);
+  ReturnsRow := false;
   Msg := '';
-  { the mark is checked here too and not only in GenerateFrom: a template
-    that carries a written statement with :Names never reaches that function,
-    and a record travelling into it is just as much an ORM action }
   if not IsOrmActionKey(Rec.ActionKey) then
   begin
     Msg := FormatUtf8('% takes a record but does not start with %',
       [Rec.ActionKey, RECORDACTION_PREFIX]);
     exit(rbNotOrmAction);
   end;
-  { and a retrieve or a delete is not one a record is sent into: their one
-    value is the key, and it travels as an ordinary bound parameter }
+  { and a retrieve or a delete is not one a record is sent into: their
+    values are the where clause's or the key, and they travel as ordinary
+    bound parameters }
   if RecordKindOf(Rec) in [raRetrieve, raDelete] then
   begin
     Msg := FormatUtf8('% reads or deletes: send the key or the filter''s ' +
       'values as bound values, not a record', [Rec.ActionKey]);
     exit(rbNoWriteKind);
   end;
+  { An Orm key is made from its record type and nothing else. A statement of
+    its own was once the way out for what the convention could not say; the
+    table is now a column, and what is left - a join, a composite key, an
+    extra condition - is an ordinary template with ? and a value list }
+  if Rec.Sql <> '' then
+  begin
+    Msg := FormatUtf8('% is generated from % and carries no statement of ' +
+      'its own - leave Sql empty, name the table in TableName, or use a key ' +
+      'without Orm', [Rec.ActionKey, Rec.RecordType]);
+    exit(rbOwnStatement);
+  end;
   result := ResolveRecordType(Rec, rc, Msg);
   if result <> rbOk then
     exit;
-  if Rec.Sql = '' then
+  result := GenerateFrom(Rec, rc, Expanded, names, Msg);
+  if result <> rbOk then
+    exit;
+  if (RecordKindOf(Rec) = raInsert) and
+     (Returning <> irNone) then
   begin
-    { no statement, so the key and the record type say everything }
-    result := GenerateFrom(Rec, rc, Expanded, names, Msg);
-    if result <> rbOk then
-      exit;
-  end
-  else
-  begin
-    if not ExpandNamedParams(Rec.Sql, Expanded, names, qm) then
-    begin
-      Msg := 'no :Placeholder in the statement';
-      exit(rbNoPlaceholder);
-    end;
-    if qm then
-    begin
-      Msg := 'the statement mixes ? with :Placeholder';
-      exit(rbQuestionMark);
-    end;
+    Expanded := WithReturning(Expanded, rc, Returning);
+    ReturnsRow := true;
   end;
   { AllocMem, not GetMem: the managed fields of the record have to start out
     nil or RecordLoadJson would release whatever the heap happened to hold }

@@ -163,7 +163,7 @@ begin
       MigrateTemplateDb(props); // a file from before the later columns
       rows := props.Execute('select ActionKey, Sql, ParamTypes, ' +
         'RecordType, RecordDecl, KeyField, ReadGroups, WriteGroups, ' +
-        'CallerScope, Filter, OrderBy, Rules, TestBounds ' +
+        'CallerScope, Filter, OrderBy, Rules, TestBounds, TableName ' +
         'from SqlTemplate order by ActionKey;',
         []);
       if rows <> nil then
@@ -184,6 +184,7 @@ begin
           Recs[n].OrderBy := rows.ColumnUtf8(10);
           Recs[n].Rules := rows.ColumnUtf8(11);
           Recs[n].TestBounds := rows.ColumnUtf8(12);
+          Recs[n].TableName := rows.ColumnUtf8(13);
           inc(n);
         end;
       SetLength(Recs, n);
@@ -217,8 +218,8 @@ begin
   if (Rec.Sql = '') and
      (Rec.RecordType = '') then
   begin
-    { the one case an empty statement is allowed is a record write that has
-      its statement generated - and that needs a record type to generate from }
+    { the one case an empty statement is allowed is an Orm key, whose
+      statement is generated - and that needs a record type to generate from }
     Msg := 'The statement is empty, and no record type is given to ' +
            'generate one from.';
     exit;
@@ -235,12 +236,12 @@ begin
         'insert or replace into SqlTemplate ' +
         '(ActionKey, Sql, ParamTypes, RecordType, RecordDecl, KeyField, ' +
         'CallerScope, Filter, OrderBy, Rules, TestBounds, ' +
-        'ReadGroups, WriteGroups) ' +
-        'values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
+        'ReadGroups, WriteGroups, TableName) ' +
+        'values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
         [Rec.ActionKey, Rec.Sql, Rec.ParamTypes, Rec.RecordType,
          Rec.RecordDecl, Rec.KeyField, Rec.CallerScope,
          Rec.Filter, Rec.OrderBy, Rec.Rules, Rec.TestBounds,
-         Rec.ReadGroups, Rec.WriteGroups]);
+         Rec.ReadGroups, Rec.WriteGroups, Rec.TableName]);
       Msg := FormatUtf8('% saved.', [Rec.ActionKey]);
       result := true;
     except
@@ -313,8 +314,8 @@ begin
     txt := txt + FormatUtf8(
       'insert into SqlTemplate (ActionKey, Sql, ParamTypes, RecordType, ' +
       'RecordDecl, KeyField, CallerScope, Filter, OrderBy, Rules, ' +
-      'TestBounds, ReadGroups, WriteGroups) ' +
-      'values (%, %, %, %, %, %, %, %, %, %, %, %, %);'#10,
+      'TestBounds, ReadGroups, WriteGroups, TableName) ' +
+      'values (%, %, %, %, %, %, %, %, %, %, %, %, %, %);'#10,
       [QuotedStr(recs[i].ActionKey), QuotedStr(recs[i].Sql),
        QuotedStr(recs[i].ParamTypes), QuotedStr(recs[i].RecordType),
        QuotedStr(recs[i].RecordDecl), QuotedStr(recs[i].KeyField),
@@ -322,7 +323,7 @@ begin
        QuotedStr(recs[i].Filter), QuotedStr(recs[i].OrderBy),
        QuotedStr(recs[i].Rules), QuotedStr(recs[i].TestBounds),
        recs[i].ReadGroups,
-       recs[i].WriteGroups]);
+       recs[i].WriteGroups, QuotedStr(recs[i].TableName)]);
   try
     FileFromString(txt, DestFile);
     Msg := FormatUtf8('% template(s) written to %.',
