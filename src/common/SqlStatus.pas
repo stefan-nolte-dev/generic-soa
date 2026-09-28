@@ -32,11 +32,14 @@ type
     sqlNoRows,
     /// the insert, update or delete ran without error but changed no row
     sqlNothingWritten,
-    /// the statement itself failed - broken SQL, wrong parameter count
+    /// the statement itself failed - broken SQL, a table that is not there
+    // - never for a wrong parameter count: that is the caller's, and answered
+    // as sqlBadParams whether the template declares ParamTypes or not
     // - the reason is written to the server log, not returned: it belongs to
     // whoever maintains the templates, not to the caller
     sqlFailed,
-    /// the values sent do not match what the template declares
+    /// the values sent do not match the template: their count, a declared
+    /// type or a rule
     // - appended, so the ordinals of everything above are unchanged on the wire
     sqlBadParams,
     /// nobody is calling: no token, an expired one, or one that is not valid

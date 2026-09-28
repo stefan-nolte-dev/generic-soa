@@ -643,6 +643,13 @@ der Treiber wird nach `BindDateTime` gefragt. Ein Wert, der sich nicht wandeln
 lässt, wird mit `sqlBadParams` abgelehnt und nie geraten — `'31. August'` kommt
 als Status zurück, nicht als falsches Ergebnis und nicht als Ausnahme.
 
+Die **Anzahl** wird mit und ohne Deklaration geprüft: der Server vergleicht die
+Werte mit den `?` des Statements — bei einem generierten Retrieve mit denen
+seiner where-Klausel — und beantwortet eine Abweichung mit `sqlBadParams`,
+bevor der Treiber sie sieht. Bei einem Key mit Caller-Scope läuft der Vergleich
+nach dem Anhängen der eigenen Id des Servers und gilt so für das ganze
+Statement.
+
 Eine Deklaration, die sich nicht lesen lässt, wird beim Laden des **Satzes**
 abgelehnt, nicht beim Aufruf des Keys: ein kaputtes `ParamTypes` lässt
 `ReloadTemplates` scheitern, und der Server behält, was er hatte.
@@ -1349,7 +1356,7 @@ vorher lieferten:
 | `sqlNoRows` | der Select lief, ohne Treffer |
 | `sqlNothingWritten` | der Schreibvorgang lief, ohne Änderung |
 | `sqlFailed` | die Anweisung selbst schlug fehl — Grund im Serverprotokoll |
-| `sqlBadParams` | die Werte passen nicht zu dem, was das Template deklariert |
+| `sqlBadParams` | die Werte passen nicht zum Template: Anzahl, Typ oder Regel |
 
 Ein unbekannter Action-Key ist eine gewöhnliche Antwort, keine Katastrophe. Nur
 Verdrahtungsfehler werfen noch, deshalb wirft ein normaler Durchlauf nichts und
