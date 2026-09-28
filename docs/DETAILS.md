@@ -618,6 +618,12 @@ the driver is asked for `BindDateTime`. A value that will not convert is
 refused with `sqlBadParams` and never guessed at — `'31. August'` comes back as
 a status, not as a wrong result and not as an exception.
 
+The **count** is checked with or without a declaration: the server compares
+the values against the `?` of the statement — for a generated retrieve those
+of its where clause — and answers a mismatch with `sqlBadParams` before the
+driver sees it. For a caller-scoped key the comparison runs after the
+server's own id was appended, so it holds the full statement.
+
 A declaration that does not parse is refused when the **set** is loaded, not
 when the key is called: a bad `ParamTypes` fails `ReloadTemplates` and the
 server keeps the templates it had.
@@ -1280,7 +1286,7 @@ return:
 | `sqlNoRows` | the select ran and matched nothing |
 | `sqlNothingWritten` | the write ran and changed nothing |
 | `sqlFailed` | the statement itself failed — reason in the server log |
-| `sqlBadParams` | the values do not match what the template declares |
+| `sqlBadParams` | the values do not match the template: count, type or rule |
 
 An unknown action key is an ordinary answer, not a catastrophe. Only wiring
 mistakes still raise, so a normal run raises nothing and a debugger stops on

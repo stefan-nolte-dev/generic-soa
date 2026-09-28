@@ -126,22 +126,35 @@ end;
 
 { JSON has four types; what the driver binds is decided by the variant's. The
   declaration closes that gap - and a template that declares nothing hands its
-  values on untouched. }
+  values on untouched.
+  The count is checked first and for every template, declared or not: runs
+  after ApplyCallerScope, so the caller's own id is already among the values
+  and the statement's ? are what they have to match. Left to the driver, the
+  same mistake came back as sqlFailed, and which of the two a caller got
+  depended on a column they cannot see. }
 function TSqlTemplateExec.Coerce(const Rec: TSqlRec; const Bounds: variant;
   out Coerced: variant): TSqlStatus;
 var
   msg: RawUtf8;
+  src: PDocVariantData;
+  expected: integer;
 begin
-  if CoerceBounds(Rec.ParamTypes, Bounds, Coerced, msg) then
-    result := sqlOk
-  else
-  begin
-    { the reason names a parameter and is the caller's, so it earns its own
-      status rather than sqlFailed }
-    SynDBLog.Add.Log(sllWarning, 'Coerce(%): %', [Rec.ActionKey, msg]);
-    SetLastError('%', [msg]);
-    result := sqlBadParams;
-  end;
+  src := _Safe(Bounds);
+  expected := ExpectedParamCount(Rec);
+  if not src^.IsArray and
+     (src^.Count <> 0) then
+    msg := 'The parameters are not an array.'
+  else if src^.Count <> expected then
+    msg := FormatUtf8('The template has % parameter(s), % were sent.',
+      [expected, src^.Count])
+  else if CoerceBounds(Rec.ParamTypes, Bounds, Coerced, msg) then
+    exit(sqlOk);
+  { the reason names a parameter and is the caller's, so it earns its own
+    status rather than sqlFailed }
+  Coerced := Null;
+  SynDBLog.Add.Log(sllWarning, 'Coerce(%): %', [Rec.ActionKey, msg]);
+  SetLastError('%', [msg]);
+  result := sqlBadParams;
 end;
 
 function TSqlTemplateExec.Prepare(const Rec: TSqlRec; const Bounds: variant;
