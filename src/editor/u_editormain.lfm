@@ -286,9 +286,9 @@ object FormEditor: TFormEditor
       Font.Name = 'Menlo'
       OnChange = MemoSqlChange
       ParentFont = False
-      ScrollBars = ssAutoBoth
+      ScrollBars = ssAutoVertical
       TabOrder = 1
-      WordWrap = False
+      WordWrap = True
     end
     object LabelSqlPreview: TLabel
       Left = 100
