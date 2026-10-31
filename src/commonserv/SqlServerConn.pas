@@ -104,26 +104,10 @@ function setenv(name, value: PAnsiChar; overwrite: integer): integer;
   cdecl; external 'c' name 'setenv';
 {$endif OSPOSIX}
 
-procedure SetupOpenSslForLegacyTls;
-var
-  cfg: RawUtf8;
-begin
-  {$ifdef OSPOSIX}
-  if GetEnvironmentVariable('OPENSSL_CONF') <> '' then
-    exit; // never override an explicit setting
-  cfg := StringToUtf8(Executable.ProgramFilePath + SQLSERVER_TLS_CONFIG);
-  if FileExists(Utf8ToString(cfg)) then
-    setenv('OPENSSL_CONF', pointer(cfg), 1)
-  else
-    SynDBLog.Add.Log(sllWarning, '% not found next to the executable: a ' +
-      'server offering TLS 1.0 only will refuse the handshake',
-      [SQLSERVER_TLS_CONFIG]);
-  {$endif OSPOSIX}
-end;
-
-{ The folder of bin/sqlserver.json. Not the raw program folder: on macOS
-  Lazarus can start the program through its .app bundle, whose executable is
-  only a symlink back to bin/ - same as DefaultDataFolder in the editor }
+{ The folder of bin/sqlserver.json and openssl-tls1.cnf. Not the raw program
+  folder: on macOS Lazarus can start the program through its .app bundle,
+  whose executable is only a symlink back to bin/ - same as DefaultDataFolder
+  in the editor }
 function SettingsFolder: string;
 const
   BUNDLE = '.app' + PathDelim + 'Contents' + PathDelim + 'MacOS' + PathDelim;
@@ -134,6 +118,23 @@ begin
   p := Pos(BUNDLE, result);
   if p > 0 then
     result := ExtractFilePath(copy(result, 1, p - 1));
+end;
+
+procedure SetupOpenSslForLegacyTls;
+var
+  cfg: RawUtf8;
+begin
+  {$ifdef OSPOSIX}
+  if GetEnvironmentVariable('OPENSSL_CONF') <> '' then
+    exit; // never override an explicit setting
+  cfg := StringToUtf8(SettingsFolder + SQLSERVER_TLS_CONFIG);
+  if FileExists(Utf8ToString(cfg)) then
+    setenv('OPENSSL_CONF', pointer(cfg), 1)
+  else
+    SynDBLog.Add.Log(sllWarning, '% not found next to the executable: a ' +
+      'server offering TLS 1.0 only will refuse the handshake',
+      [SQLSERVER_TLS_CONFIG]);
+  {$endif OSPOSIX}
 end;
 
 { One value: the environment first, then the file, then the default. The file
