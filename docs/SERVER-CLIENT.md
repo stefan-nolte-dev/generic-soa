@@ -50,10 +50,17 @@ names, the profile, the database and the path of its log file (`bin/*.log`).
 
 `templates_mssql_schema.sql` beside it creates the four tables that profile's
 templates read, with a few made-up rows — nothing in the project creates them,
-so the profile has something to run against. Point `SQLSERVER_HOST` in
-`src/commonserv/SqlServerConn.pas` at your own server and `TargetDatabase` in
-`src/common/SqlProfiles.pas` at your own database first; both carry a
-placeholder.
+so the profile has something to run against. Name your own server and
+database first, in `bin/sqlserver.json` (not in git, like everything in `bin/`
+but the templates):
+
+```json
+{"Host": "sqlserver.example.com,1433", "Database": "SoaSample"}
+```
+
+The host by its FQDN, which Kerberos needs. The environment variables
+`SQLSERVER_HOST` and `SQLSERVER_DATABASE` override the file. Without either the
+host is a placeholder and the database is the profile's `SoaSample`.
 
 Both profiles can run at the same time — their own port, their own database.
 

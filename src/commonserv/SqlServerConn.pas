@@ -23,8 +23,12 @@ unit SqlServerConn;
   has the two fields for it - but then the password is the user's to type, not
   this unit's to keep.
 
-  Point SQLSERVER_HOST below at your own server and SqlProfiles at your own
-  database; bin/templates_mssql_schema.sql creates the four tables the
+  The server and the database are your own, so neither is in this source:
+  bin/sqlserver.json names them, an object with the two fields "Host" (e.g.
+  "sqlserver.example.com,1433") and "Database", and the environment variables SQLSERVER_HOST and SQLSERVER_DATABASE override
+  the file. bin/* is not in git, so a real server name never ends up in the
+  repository. Without either the placeholder host and the profile's database
+  name are used. bin/templates_mssql_schema.sql creates the four tables the
   supplied templates read, with a handful of made-up rows.
 
   macOS specifics, all four of them the reason this unit exists:
@@ -52,13 +56,15 @@ uses
   mormot.core.unicode,
   mormot.core.os,
   mormot.core.log,
+  mormot.core.variants,
   mormot.db.sql,
   mormot.db.sql.odbc;
 
 const
-  { the sample names one server and one database; a real service reads them
-    from its settings. Your own goes here - by FQDN, see above }
+  { the placeholder, used while neither the settings file nor the environment
+    names a server - by FQDN, see above }
   SQLSERVER_HOST = 'sqlserver.example.com,1433';
+  SQLSERVER_SETTINGS = 'sqlserver.json';
   SQLSERVER_TLS_CONFIG = 'openssl-tls1.cnf';
 
   {$ifdef OSWINDOWS}
@@ -67,7 +73,16 @@ const
   SQLSERVER_DRIVER = 'ODBC Driver 17 for SQL Server';
   {$endif OSWINDOWS}
 
+/// the server to connect to: SQLSERVER_HOST from the environment, else Host
+// from bin/sqlserver.json, else the SQLSERVER_HOST placeholder
+function SqlServerHost: RawUtf8;
+
+/// the database to connect to: SQLSERVER_DATABASE from the environment, else
+// Database from bin/sqlserver.json, else aDefault - the profile's name
+function SqlServerDatabase(const aDefault: RawUtf8): RawUtf8;
+
 /// the connection string of one database on the sample's SQL Server
+// - aDatabase is the profile's name, which the settings may replace
 function SqlServerConnectionString(const aDatabase: RawUtf8): RawUtf8;
 
 /// point OpenSSL at the configuration that still allows TLS 1.0
@@ -106,10 +121,53 @@ begin
   {$endif OSPOSIX}
 end;
 
+{ The folder of bin/sqlserver.json. Not the raw program folder: on macOS
+  Lazarus can start the program through its .app bundle, whose executable is
+  only a symlink back to bin/ - same as DefaultDataFolder in the editor }
+function SettingsFolder: string;
+const
+  BUNDLE = '.app' + PathDelim + 'Contents' + PathDelim + 'MacOS' + PathDelim;
+var
+  p: SizeInt;
+begin
+  result := Executable.ProgramFilePath;
+  p := Pos(BUNDLE, result);
+  if p > 0 then
+    result := ExtractFilePath(copy(result, 1, p - 1));
+end;
+
+{ One value: the environment first, then the file, then the default. The file
+  is read on every call - it is a few bytes, and an edit to it then counts on
+  the next connect without a restart }
+function SqlServerSetting(const aEnvName, aJsonName,
+  aDefault: RawUtf8): RawUtf8;
+var
+  doc: TDocVariantData;
+begin
+  result := StringToUtf8(GetEnvironmentVariable(Utf8ToString(aEnvName)));
+  if result <> '' then
+    exit;
+  if doc.InitJsonFromFile(SettingsFolder + SQLSERVER_SETTINGS,
+       JSON_FAST_FLOAT) then
+    result := doc.U[aJsonName];
+  if result = '' then
+    result := aDefault;
+end;
+
+function SqlServerHost: RawUtf8;
+begin
+  result := SqlServerSetting('SQLSERVER_HOST', 'Host', SQLSERVER_HOST);
+end;
+
+function SqlServerDatabase(const aDefault: RawUtf8): RawUtf8;
+begin
+  result := SqlServerSetting('SQLSERVER_DATABASE', 'Database', aDefault);
+end;
+
 function SqlServerConnectionString(const aDatabase: RawUtf8): RawUtf8;
 begin
-  result := 'DRIVER={' + SQLSERVER_DRIVER + '};SERVER=' + SQLSERVER_HOST +
-    ';DATABASE=' + aDatabase + ';Trusted_Connection=yes' +
+  result := 'DRIVER={' + SQLSERVER_DRIVER + '};SERVER=' + SqlServerHost +
+    ';DATABASE=' + SqlServerDatabase(aDatabase) + ';Trusted_Connection=yes' +
     ';Encrypt=yes;TrustServerCertificate=yes';
 end;
 
