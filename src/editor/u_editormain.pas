@@ -152,22 +152,37 @@ type
     LabelTemplates: TLabel;
     LabelTypeName: TLabel;
     LabelUser: TLabel;
+    LabelConnectStatus: TLabel;
+    LabelHintInput: TLabel;
+    LabelHintRights: TLabel;
+    LabelHintTypes: TLabel;
     ListKeys: TListBox;
     MemoBounds: TMemo;
     MemoDto: TMemo;
     MemoJson: TMemo;
     MemoLog: TMemo;
     MemoSql: TMemo;
+    PageMain: TPageControl;
+    PagesDetail: TPageControl;
     PagesResult: TPageControl;
-    PanelActions: TPanel;
     PanelDtoTop: TPanel;
-    PanelEdit: TScrollBox;
+    PanelEditHead: TPanel;
+    PanelRight: TPanel;
+    PanelSql: TPanel;
+    PanelSqlSide: TPanel;
     PanelJsonTop: TPanel;
     PanelKeys: TPanel;
     PanelKeysBottom: TPanel;
+    PanelKeysTop: TPanel;
     PanelTop: TPanel;
     SplitterEdit: TSplitter;
+    SplitterSql: TSplitter;
     Splitter1: TSplitter;
+    TabConnection: TTabSheet;
+    TabTemplates: TTabSheet;
+    TabTypes: TTabSheet;
+    TabRights: TTabSheet;
+    TabTest: TTabSheet;
     TabDto: TTabSheet;
     TabJson: TTabSheet;
     TabLog: TTabSheet;
@@ -238,6 +253,8 @@ type
     procedure Log(const Msg: RawUtf8); // not 'Text': TControl.Text is in scope
     /// the one line that is always visible, whichever tab is in front
     procedure Say(const Msg: RawUtf8; Level: TStatusLevel);
+    procedure SayConnect(const Msg: RawUtf8; Ok: boolean);
+    procedure ShowTestCaption;
     /// what is open, in the title bar - the top row has no room for it
     procedure ShowConnection;
     /// what the Rollback box says a write is to end with
@@ -416,6 +433,10 @@ begin
   ComboProfile.ItemIndex := 0;
   ComboProfileChange(nil);
   ShowConnection;
+  ShowTestCaption;
+  { connect and load first, edit second: the tabs are in that order, and a
+    new user starts on the first one }
+  PageMain.ActivePage := TabConnection;
   MemoLog.Clear;
   PagesResult.ActivePage := TabLog;
   Log('Template editor. Connect to a database, then load the template list.');
@@ -573,11 +594,23 @@ begin
   { in the title, because a window that writes for real should say so where
     nothing can cover it up - the same place the connection is named }
   ShowConnection;
+  ShowTestCaption;
   if cbRollback.Checked then
     Log('Rollback on: a test run is rolled back, as always.')
   else
     Log('Rollback OFF: a write statement that succeeds stays in ' +
-        'the database. Applies to Test and to record values.');
+        'the database. Applies to Exec and to record values.');
+end;
+
+{ The button says what the click is about to do. Whether a write stays is
+  decided by the Rollback box alone, so the caption follows the box rather
+  than offering "test or exec" and leaving the reader to work out which. }
+procedure TFormEditor.ShowTestCaption;
+begin
+  if cbRollback.Checked then
+    ButtonTest.Caption := 'Test (rollback)'
+  else
+    ButtonTest.Caption := 'Exec (commit)';
 end;
 
 procedure TFormEditor.Say(const Msg: RawUtf8; Level: TStatusLevel);
@@ -838,7 +871,12 @@ begin
   if fDb.Connect(TEditorEngine(ComboEngine.ItemIndex),
        RawUtf8(Trim(EditTarget.Text)), RawUtf8(Trim(EditUser.Text)),
        RawUtf8(EditPassword.Text), msg) then
+  begin
     ButtonConnect.Caption := 'Disconnect';
+    SayConnect(msg, true);
+  end
+  else
+    SayConnect(msg, false);
   ShowConnection;
   Log(msg);
   PagesResult.ActivePage := TabLog;
@@ -931,6 +969,27 @@ begin
     maintainer where they were, not throw them back to the whole file }
   FillKeyList;
   Log(msg);
+  { only for the button: a save or a delete reloads the list too, and the
+    maintainer is on the templates tab then and stays there }
+  if Sender = ButtonLoadList then
+    if fListLoaded then
+    begin
+      SayConnect(msg, true);
+      PageMain.ActivePage := TabTemplates;
+    end
+    else
+      SayConnect(msg, false);
+end;
+
+{ The log is on the templates tab, out of sight while connecting. What went
+  wrong there has to be readable where the button was pressed. }
+procedure TFormEditor.SayConnect(const Msg: RawUtf8; Ok: boolean);
+begin
+  LabelConnectStatus.Caption := SafeText(ShortReason(Msg));
+  if Ok then
+    LabelConnectStatus.Font.Color := clDefault
+  else
+    LabelConnectStatus.Font.Color := clRed;
 end;
 
 { The list on screen, from what was loaded and from the filter box.

@@ -9,875 +9,1002 @@ object FormEditor: TFormEditor
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  object PanelTop: TPanel
+  object PageMain: TPageControl
     Left = 0
-    Height = 104
+    Height = 900
     Top = 0
     Width = 1180
-    Align = alTop
-    BevelOuter = bvNone
-    ClientHeight = 104
-    ClientWidth = 1180
-    TabOrder = 0
-    object LabelEngine: TLabel
-      Left = 12
-      Height = 16
-      Top = 14
-      Width = 22
-      Caption = 'DB:'
-      ParentColor = False
-    end
-    object ComboEngine: TComboBox
-      Left = 92
-      Height = 20
-      Top = 10
-      Width = 180
-      ItemHeight = 16
-      Style = csDropDownList
-      TabOrder = 0
-      OnChange = ComboEngineChange
-    end
-    object LabelTarget: TLabel
-      Left = 288
-      Height = 16
-      Top = 14
-      Width = 26
-      Caption = 'Target:'
-      ParentColor = False
-    end
-    object EditTarget: TEdit
-      Left = 330
-      Height = 21
-      Top = 10
-      Width = 290
-      TabOrder = 1
-    end
-    object ButtonBrowseTarget: TButton
-      Left = 624
-      Height = 25
-      Top = 10
-      Width = 30
-      Caption = '...'
-      TabOrder = 7
-      OnClick = ButtonBrowseTargetClick
-    end
-    object LabelUser: TLabel
-      Left = 664
-      Height = 16
-      Top = 14
-      Width = 32
-      Caption = 'User:'
-      ParentColor = False
-    end
-    object EditUser: TEdit
-      Left = 706
-      Height = 21
-      Top = 10
-      Width = 110
-      TabOrder = 2
-    end
-    object LabelPassword: TLabel
-      Left = 828
-      Height = 16
-      Top = 14
-      Width = 59
-      Caption = 'Password:'
-      ParentColor = False
-    end
-    object EditPassword: TEdit
-      Left = 894
-      Height = 21
-      Top = 10
-      Width = 110
-      EchoMode = emPassword
-      PasswordChar = '*'
-      TabOrder = 3
-    end
-    object ButtonConnect: TButton
-      Left = 1020
-      Height = 27
-      Top = 9
-      Width = 130
-      Caption = 'Connect'
-      TabOrder = 4
-      OnClick = ButtonConnectClick
-    end
-    object LabelProfile: TLabel
-      Left = 288
-      Height = 16
-      Top = 44
-      Width = 35
-      Caption = 'Profile:'
-      ParentColor = False
-    end
-    object ComboProfile: TComboBox
-      Left = 330
-      Height = 20
-      Top = 40
-      Width = 324
-      ItemHeight = 15
-      Style = csDropDownList
-      TabOrder = 9
-      OnChange = ComboProfileChange
-    end
-    object LabelTemplates: TLabel
-      Left = 12
-      Height = 16
-      Top = 74
-      Width = 66
-      Caption = 'Templates:'
-      ParentColor = False
-    end
-    object EditTemplates: TEdit
-      Left = 92
-      Height = 21
-      Top = 70
-      Width = 290
-      TabOrder = 5
-    end
-    object ButtonBrowseTemplates: TButton
-      Left = 386
-      Height = 25
-      Top = 70
-      Width = 30
-      Caption = '...'
-      TabOrder = 8
-      OnClick = ButtonBrowseTemplatesClick
-    end
-    object ButtonLoadList: TButton
-      Left = 424
-      Height = 27
-      Top = 69
-      Width = 130
-      Caption = 'Load list'
-      TabOrder = 6
-      OnClick = ButtonLoadListClick
-    end
-  end
-  object PanelKeys: TPanel
-    Left = 0
-    Height = 276
-    Top = 624
-    Width = 250
-    Align = alLeft
-    BevelOuter = bvNone
-    ClientHeight = 276
-    ClientWidth = 250
-    TabOrder = 1
-    object ListKeys: TListBox
-      Left = 0
-      Height = 200
-      Top = 0
-      Width = 250
-      Align = alClient
-      ItemHeight = 0
-      TabOrder = 0
-      OnSelectionChange = ListKeysSelectionChange
-    end
-    object PanelKeysBottom: TPanel
-      Left = 0
-      Height = 40
-      Top = 200
-      Width = 250
-      Align = alBottom
-      BevelOuter = bvNone
-      ClientHeight = 40
-      ClientWidth = 250
-      TabOrder = 1
-      object ButtonNew: TButton
-        Left = 6
-        Height = 27
-        Top = 6
-        Width = 110
-        Caption = 'New'
-        TabOrder = 0
-        OnClick = ButtonNewClick
-      end
-      object ButtonDelete: TButton
-        Left = 126
-        Height = 27
-        Top = 6
-        Width = 110
-        Caption = 'Delete'
-        TabOrder = 1
-        OnClick = ButtonDeleteClick
-      end
-    end
-  end
-  object Splitter1: TSplitter
-    Left = 250
-    Height = 276
-    Top = 624
-    Width = 6
-  end
-  object PanelEdit: TScrollBox
-    Left = 0
-    Height = 412
-    Top = 104
-    Width = 1180
-    HorzScrollBar.Visible = False
-    VertScrollBar.Increment = 24
-    Align = alTop
-    BorderStyle = bsNone
-    TabOrder = 2
-    object LabelKey: TLabel
-      Left = 12
-      Height = 16
-      Top = 12
-      Width = 71
-      Caption = 'Action key:'
-      ParentColor = False
-    end
-    object EditKey: TEdit
-      Left = 100
-      Height = 21
-      Top = 8
-      Width = 320
-      OnChange = EditKeyChange
-      TabOrder = 0
-    end
-    object LabelRights: TLabel
-      Left = 434
-      Height = 16
-      Top = 12
-      Width = 145
-      Caption = 'Rights read/write:'
-      ParentColor = False
-    end
-    object EditReadGroups: TEdit
-      Left = 600
-      Height = 21
-      Top = 8
-      Width = 70
-      TabOrder = 9
-      Text = '0'
-    end
-    object EditWriteGroups: TEdit
-      Left = 676
-      Height = 21
-      Top = 8
-      Width = 70
-      TabOrder = 10
-      Text = '0'
-    end
-    object LabelRightsHint: TLabel
-      Left = 756
-      Height = 16
-      Top = 12
-      Width = 218
-      Caption = 'bitmask per group, 0 = no rule'
-      ParentColor = False
-    end
-    object LabelSql: TLabel
-      Left = 12
-      Height = 16
-      Top = 44
-      Width = 29
-      Caption = 'SQL:'
-      ParentColor = False
-    end
-    object MemoSql: TMemo
-      Left = 100
-      Height = 94
-      Top = 40
-      Width = 1066
-      Anchors = [akTop, akLeft, akRight]
-      Font.Height = -12
-      Font.Name = 'Menlo'
-      OnChange = MemoSqlChange
-      ParentFont = False
-      ScrollBars = ssAutoVertical
-      TabOrder = 1
-      WordWrap = True
-    end
-    object LabelSqlPreview: TLabel
-      Left = 100
-      Height = 16
-      Top = 140
-      Width = 1066
-      Anchors = [akTop, akLeft, akRight]
-      AutoSize = False
-      Font.Height = -12
-      Font.Name = 'Menlo'
-      ParentColor = False
-      ParentFont = False
-      ShowHint = True
-    end
-    object LabelParamTypes: TLabel
-      Left = 12
-      Height = 16
-      Top = 168
-      Width = 41
-      Caption = 'Types:'
-      ParentColor = False
-    end
-    object EditParamTypes: TEdit
-      Left = 100
-      Height = 21
-      Top = 164
-      Width = 320
-      OnChange = SqlPartChange
-      TabOrder = 11
-    end
-    object LabelRecordType: TLabel
-      Left = 630
-      Height = 16
-      Top = 168
-      Width = 74
-      Caption = 'Record type:'
-      ParentColor = False
-    end
-    object EditRecordType: TEdit
-      Left = 720
-      Height = 21
-      Top = 164
-      Width = 190
-      OnChange = EditKeyChange
-      TabOrder = 13
-    end
-    object ButtonTypesFromBounds: TButton
-      Left = 428
-      Height = 27
-      Top = 163
-      Width = 190
-      Caption = 'Take from parameters'
-      TabOrder = 12
-      OnClick = ButtonTypesFromBoundsClick
-    end
-    object LabelBounds: TLabel
-      Left = 12
-      Height = 16
-      Top = 200
-      Width = 66
-      Caption = 'Parameters:'
-      ParentColor = False
-    end
-    object ComboBoundKind: TComboBox
-      Left = 100
-      Height = 20
-      Top = 196
-      Width = 120
-      ItemHeight = 16
-      Style = csDropDownList
-      TabOrder = 2
-      OnChange = ComboBoundKindChange
-    end
-    object EditBoundValue: TEdit
-      Left = 228
-      Height = 21
-      Top = 196
-      Width = 240
-      TabOrder = 3
-    end
-    object ButtonAddBound: TButton
-      Left = 478
-      Height = 27
-      Top = 195
-      Width = 120
-      Caption = 'Add'
-      TabOrder = 4
-      OnClick = ButtonAddBoundClick
-    end
-    object ButtonClearBounds: TButton
-      Left = 606
-      Height = 27
-      Top = 195
-      Width = 90
-      Caption = 'Clear'
-      TabOrder = 5
-      OnClick = ButtonClearBoundsClick
-    end
-    object ButtonTestBoundsFromJson: TButton
-      Left = 966
-      Height = 26
-      Top = 226
-      Width = 200
-      Anchors = [akTop, akRight]
-      Caption = 'JSON as TestBounds'
-      OnClick = ButtonTestBoundsFromJsonClick
-      TabOrder = 25
-    end
-    object LabelBoundHint: TLabel
-      Left = 706
-      Height = 1
-      Top = 200
-      Width = 1
-      ParentColor = False
-    end
-    object MemoBounds: TMemo
-      Left = 100
-      Height = 76
-      Top = 228
-      Width = 360
-      Font.Height = -12
-      Font.Name = 'Menlo'
-      ParentFont = False
-      ScrollBars = ssAutoVertical
-      TabOrder = 6
-      WordWrap = False
-      OnChange = MemoBoundsChange
-    end
-    object LabelBoundsJson: TLabel
-      Left = 478
-      Height = 16
-      Top = 232
-      Width = 120
-      Caption = 'sent as JSON:'
-      ParentColor = False
-    end
-    object EditBoundsJson: TEdit
-      Left = 478
-      Height = 19
-      Top = 254
-      Width = 684
-      Anchors = [akTop, akLeft, akRight]
-      Font.Height = -12
-      Font.Name = 'Menlo'
-      ParentFont = False
-      ReadOnly = True
-      TabOrder = 7
-    end
-    object CheckInline: TCheckBox
-      Left = 100
-      Height = 18
-      Top = 312
-      Width = 352
-      Caption = 'Cross-check: inline the values instead of binding'
-      TabOrder = 8
-    end
-    object ButtonRecordDialog: TButton
-      Left = 760
-      Height = 27
-      Top = 284
-      Width = 220
-      Caption = 'Enter record values...'
-      TabOrder = 17
-      OnClick = ButtonRecordDialogClick
-    end
-    object LabelKeyField: TLabel
-      Left = 926
-      Height = 16
-      Top = 168
-      Width = 61
-      Caption = 'Key:'
-      ParentColor = False
-    end
-    object EditKeyField: TEdit
-      Left = 1000
-      Height = 21
-      Top = 164
-      Width = 166
-      Anchors = [akTop, akLeft, akRight]
-      OnChange = SqlPartChange
-      TabOrder = 15
-    end
-    object LabelTableName: TLabel
-      Left = 932
-      Height = 16
-      Top = 318
-      Width = 50
-      Caption = 'Table:'
-      ParentColor = False
-    end
-    object EditTableName: TEdit
-      Left = 990
-      Height = 21
-      Top = 314
-      Width = 176
-      Anchors = [akTop, akLeft, akRight]
-      OnChange = SqlPartChange
-      TabOrder = 22
-      TextHint = 'empty = from the record type'
-    end
-    object LabelOrderBy: TLabel
-      Left = 470
-      Height = 16
-      Top = 318
-      Width = 58
-      Caption = 'order by:'
-      ParentColor = False
-    end
-    object EditOrderBy: TEdit
-      Left = 540
-      Height = 21
-      Top = 314
-      Width = 380
-      OnChange = SqlPartChange
-      TabOrder = 21
-    end
-    object LabelRecordDecl: TLabel
-      Left = 8
-      Height = 16
-      Top = 350
-      Width = 91
-      Caption = 'Record fields:'
-      ParentColor = False
-    end
-    object MemoRecordDecl: TMemo
-      Left = 100
-      Height = 32
-      Top = 346
-      Width = 1066
-      Anchors = [akTop, akLeft, akRight]
-      Font.Height = -12
-      Font.Name = 'Menlo'
-      ParentFont = False
-      ScrollBars = ssAutoBoth
-      TabOrder = 16
-      WordWrap = False
-    end
-    object LabelCallerScope: TLabel
-      Left = 12
-      Height = 16
-      Top = 386
-      Width = 83
-      Caption = 'Caller-Scope:'
-      ParentColor = False
-    end
-    object EditCallerScope: TEdit
-      Left = 100
-      Height = 21
-      Top = 382
-      Width = 160
-      TabOrder = 18
-      TextHint = 'empty, or userid'
-    end
-    object LabelRules: TLabel
-      Left = 290
-      Height = 16
-      Top = 386
-      Width = 45
-      Caption = 'Rules:'
-      ParentColor = False
-    end
-    object EditRules: TEdit
-      Left = 350
-      Height = 21
-      Top = 382
-      Width = 410
-      TabOrder = 23
-      TextHint = 'e.g. 1:notempty;2:plz;3:email'
-    end
-    object LabelTestBounds: TLabel
-      Left = 790
-      Height = 16
-      Top = 386
-      Width = 72
-      Caption = 'TestBounds:'
-      ParentColor = False
-    end
-    object EditTestBounds: TEdit
-      Left = 870
-      Height = 21
-      Top = 382
-      Width = 296
-      Anchors = [akTop, akLeft, akRight]
-      OnChange = SqlPartChange
-      TabOrder = 24
-      TextHint = 'values for Check all, e.g. ["Wegberg"]'
-    end
-    object cbRollback: TCheckBox
-      Left = 928
-      Height = 18
-      Top = 199
-      Width = 75
-      Caption = 'Rollback'
-      Checked = True
-      State = cbChecked
-      TabOrder = 19
-      OnChange = cbRollbackChange
-    end
-  end
-  object SplitterEdit: TSplitter
-    Cursor = crVSplit
-    Left = 0
-    Height = 8
-    Top = 516
-    Width = 1180
-    Align = alTop
-    Beveled = True
-    MinSize = 60
-    ResizeAnchor = akTop
-  end
-  object PanelActions: TPanel
-    Left = 0
-    Height = 100
-    Top = 524
-    Width = 1180
-    Align = alTop
-    BevelOuter = bvNone
-    ClientHeight = 100
-    ClientWidth = 1180
-    TabOrder = 3
-    object ButtonCheck: TButton
-      Left = 12
-      Height = 27
-      Top = 8
-      Width = 100
-      Caption = 'Check'
-      TabOrder = 0
-      OnClick = ButtonCheckClick
-    end
-    object ButtonTest: TButton
-      Left = 120
-      Height = 27
-      Top = 8
-      Width = 100
-      Caption = 'Test'
-      TabOrder = 1
-      OnClick = ButtonTestClick
-    end
-    object ButtonCheckAll: TButton
-      Left = 346
-      Height = 27
-      Top = 8
-      Width = 140
-      Caption = 'Check all'
-      TabOrder = 5
-      OnClick = ButtonCheckAllClick
-    end
-    object ButtonSave: TButton
-      Left = 228
-      Height = 27
-      Top = 8
-      Width = 110
-      Caption = 'Save'
-      TabOrder = 2
-      OnClick = ButtonSaveClick
-    end
-    object LabelServer: TLabel
-      Left = 510
-      Height = 16
-      Top = 14
-      Width = 43
-      Caption = 'Server:'
-      ParentColor = False
-    end
-    object EditServer: TEdit
-      Left = 560
-      Height = 21
-      Top = 9
-      Width = 150
-      TabOrder = 4
-    end
-    object ButtonReloadServer: TButton
-      Left = 720
-      Height = 27
-      Top = 8
-      Width = 160
-      Caption = 'Reload server'
-      TabOrder = 3
-      OnClick = ButtonReloadServerClick
-    end
-    object LabelKeyFilter: TLabel
-      Left = 12
-      Height = 16
-      Top = 45
-      Width = 42
-      Caption = 'Search:'
-      ParentColor = False
-    end
-    object EditKeyFilter: TEdit
-      Left = 60
-      Height = 21
-      Top = 41
-      Width = 190
-      TabOrder = 6
-      OnChange = EditKeyFilterChange
-    end
-    object ButtonCreateTable: TButton
-      Left = 600
-      Height = 27
-      Top = 40
-      Width = 240
-      Caption = 'Generate CREATE TABLE'
-      TabOrder = 7
-      OnClick = ButtonCreateTableClick
-    end
-    object LabelDialect: TLabel
-      Left = 850
-      Height = 16
-      Top = 45
-      Width = 46
-      Caption = 'Dialect:'
-      ParentColor = False
-    end
-    object ComboDialect: TComboBox
-      Left = 904
-      Height = 20
-      Top = 41
-      Width = 150
-      ItemHeight = 16
-      Style = csDropDownList
-      TabOrder = 8
-    end
-    object cbViaServer: TCheckBox
-      Left = 266
-      Height = 18
-      Top = 42
-      Width = 320
-      Caption = 'run through the server (with login)'
-      TabOrder = 5
-      OnChange = cbViaServerChange
-    end
-    object LabelStatus: TLabel
-      Left = 266
-      Height = 1
-      Top = 72
-      Width = 902
-      Anchors = [akTop, akLeft, akRight]
-      Font.Height = -13
-      Font.Style = [fsBold]
-      ParentColor = False
-      ParentFont = False
-      ShowAccelChar = False
-    end
-  end
-  object PagesResult: TPageControl
-    Left = 256
-    Height = 276
-    Top = 624
-    Width = 924
-    ActivePage = TabDto
+    ActivePage = TabConnection
     Align = alClient
-    TabIndex = 2
-    TabOrder = 4
-    object TabJson: TTabSheet
-      Caption = 'JSON'
-      ClientHeight = 204
-      ClientWidth = 918
-      object PanelJsonTop: TPanel
+    TabIndex = 0
+    TabOrder = 0
+    object TabConnection: TTabSheet
+      Caption = 'Connection'
+      ClientHeight = 864
+      ClientWidth = 1174
+      object PanelTop: TPanel
         Left = 0
-        Height = 30
+        Height = 864
         Top = 0
-        Width = 918
-        Align = alTop
-        BevelOuter = bvNone
-        ClientHeight = 30
-        ClientWidth = 918
-        TabOrder = 0
-        object CheckRawJson: TCheckBox
-          Left = 8
-          Height = 18
-          Top = 4
-          Width = 289
-          Caption = 'show raw (exactly the bytes that go out)'
-          TabOrder = 0
-          OnChange = CheckRawJsonChange
-        end
-      end
-      object MemoJson: TMemo
-        Left = 0
-        Height = 174
-        Top = 30
-        Width = 918
+        Width = 1174
         Align = alClient
-        Font.Height = -12
-        Font.Name = 'Menlo'
-        ParentFont = False
-        ReadOnly = True
-        ScrollBars = ssAutoBoth
-        TabOrder = 1
-        WordWrap = False
-      end
-    end
-    object TabTable: TTabSheet
-      Caption = 'Table'
-      ClientHeight = 204
-      ClientWidth = 918
-      object GridResult: TStringGrid
-        Left = 0
-        Height = 204
-        Top = 0
-        Width = 918
-        Align = alClient
-        ColCount = 1
-        FixedCols = 0
-        FixedRows = 0
-        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goSmoothScroll]
-        RowCount = 1
-        TabOrder = 0
-      end
-    end
-    object TabDto: TTabSheet
-      Caption = 'Type'
-      ClientHeight = 204
-      ClientWidth = 918
-      object PanelDtoTop: TPanel
-        Left = 0
-        Height = 44
-        Top = 0
-        Width = 918
-        Align = alTop
         BevelOuter = bvNone
-        ClientHeight = 44
-        ClientWidth = 918
+        ClientHeight = 864
+        ClientWidth = 1174
         TabOrder = 0
-        object LabelTypeName: TLabel
+        object LabelEngine: TLabel
           Left = 12
           Height = 16
-          Top = 14
-          Width = 59
-          Caption = 'Type name:'
+          Top = 44
+          Width = 22
+          Caption = 'DB:'
           ParentColor = False
         end
-        object EditTypeName: TEdit
-          Left = 100
-          Height = 21
-          Top = 9
-          Width = 260
-          TabOrder = 0
-        end
-        object ButtonGenerate: TButton
-          Left = 372
-          Height = 27
-          Top = 8
-          Width = 180
-          Caption = 'Type from result'
+        object ComboEngine: TComboBox
+          Left = 88
+          Height = 20
+          Top = 44
+          Width = 169
+          ItemHeight = 16
+          Style = csDropDownList
           TabOrder = 1
-          OnClick = ButtonGenerateClick
+          OnChange = ComboEngineChange
         end
-        object ButtonCopyDto: TButton
-          Left = 562
-          Height = 27
-          Top = 8
-          Width = 160
-          Caption = 'Copy to clipboard'
+        object LabelTarget: TLabel
+          Left = 272
+          Height = 16
+          Top = 44
+          Width = 42
+          Caption = 'Target:'
+          ParentColor = False
+        end
+        object EditTarget: TEdit
+          Left = 328
+          Height = 21
+          Top = 43
+          Width = 456
           TabOrder = 2
-          OnClick = ButtonCopyDtoClick
         end
-      end
-      object MemoDto: TMemo
-        Left = 0
-        Height = 160
-        Top = 44
-        Width = 918
-        Align = alClient
-        Font.Height = -12
-        Font.Name = 'Menlo'
-        ParentFont = False
-        ScrollBars = ssAutoBoth
-        TabOrder = 1
-        WordWrap = False
+        object ButtonBrowseTarget: TButton
+          Left = 803
+          Height = 25
+          Top = 39
+          Width = 30
+          Caption = '...'
+          TabOrder = 3
+          OnClick = ButtonBrowseTargetClick
+        end
+        object LabelUser: TLabel
+          Left = 12
+          Height = 16
+          Top = 72
+          Width = 32
+          Caption = 'User:'
+          ParentColor = False
+        end
+        object EditUser: TEdit
+          Left = 88
+          Height = 21
+          Top = 75
+          Width = 320
+          TabOrder = 4
+        end
+        object LabelPassword: TLabel
+          Left = 424
+          Height = 16
+          Top = 80
+          Width = 62
+          Caption = 'Password:'
+          ParentColor = False
+        end
+        object EditPassword: TEdit
+          Left = 510
+          Height = 21
+          Top = 76
+          Width = 172
+          EchoMode = emPassword
+          PasswordChar = '*'
+          TabOrder = 5
+        end
+        object ButtonConnect: TButton
+          Left = 702
+          Height = 27
+          Top = 75
+          Width = 130
+          Caption = 'Connect'
+          TabOrder = 6
+          OnClick = ButtonConnectClick
+        end
+        object LabelProfile: TLabel
+          Left = 12
+          Height = 16
+          Top = 10
+          Width = 43
+          Caption = 'Profile:'
+          ParentColor = False
+        end
+        object ComboProfile: TComboBox
+          Left = 88
+          Height = 20
+          Top = 6
+          Width = 745
+          ItemHeight = 15
+          Style = csDropDownList
+          TabOrder = 0
+          OnChange = ComboProfileChange
+        end
+        object LabelTemplates: TLabel
+          Left = 12
+          Height = 16
+          Top = 120
+          Width = 66
+          Caption = 'Templates:'
+          ParentColor = False
+        end
+        object EditTemplates: TEdit
+          Left = 88
+          Height = 21
+          Top = 115
+          Width = 696
+          TabOrder = 7
+        end
+        object ButtonBrowseTemplates: TButton
+          Left = 800
+          Height = 25
+          Top = 111
+          Width = 30
+          Caption = '...'
+          TabOrder = 8
+          OnClick = ButtonBrowseTemplatesClick
+        end
+        object ButtonLoadList: TButton
+          Left = 88
+          Height = 27
+          Top = 144
+          Width = 130
+          Caption = 'Load list'
+          TabOrder = 9
+          OnClick = ButtonLoadListClick
+        end
+        object LabelConnectStatus: TLabel
+          Left = 88
+          Height = 16
+          Top = 184
+          Width = 745
+          AutoSize = False
+          ParentColor = False
+          ShowAccelChar = False
+        end
+        object LabelServer: TLabel
+          Left = 12
+          Top = 228
+          Height = 16
+          Width = 43
+          Caption = 'Server:'
+          ParentColor = False
+        end
+        object EditServer: TEdit
+          Left = 88
+          Top = 224
+          Width = 320
+          TabOrder = 10
+          Height = 21
+        end
+        object ButtonReloadServer: TButton
+          Left = 424
+          Top = 222
+          Width = 160
+          TabOrder = 11
+          Height = 27
+          Caption = 'Reload server'
+          OnClick = ButtonReloadServerClick
+        end
       end
     end
-    object TabLog: TTabSheet
-      Caption = 'Messages'
-      ClientHeight = 204
-      ClientWidth = 918
-      object MemoLog: TMemo
+    object TabTemplates: TTabSheet
+      Caption = 'Templates'
+      ClientHeight = 864
+      ClientWidth = 1174
+      object PanelKeys: TPanel
         Left = 0
-        Height = 204
+        Height = 864
+        Top = 0
+        Width = 250
+        Align = alLeft
+        TabOrder = 0
+        BevelOuter = bvNone
+        object PanelKeysTop: TPanel
+          Left = 0
+          Height = 34
+          Top = 0
+          Width = 250
+          Align = alTop
+          TabOrder = 0
+          BevelOuter = bvNone
+          object LabelKeyFilter: TLabel
+            Left = 6
+            Top = 10
+            Height = 16
+            Width = 46
+            Caption = 'Search:'
+            ParentColor = False
+          end
+          object EditKeyFilter: TEdit
+            Left = 56
+            Top = 6
+            Width = 188
+            Anchors = [akTop, akLeft, akRight]
+            TabOrder = 0
+            Height = 21
+            OnChange = EditKeyFilterChange
+          end
+        end
+        object ListKeys: TListBox
+          Left = 0
+          Height = 790
+          Top = 34
+          Width = 250
+          Align = alClient
+          TabOrder = 1
+          ItemHeight = 0
+          OnSelectionChange = ListKeysSelectionChange
+        end
+        object PanelKeysBottom: TPanel
+          Left = 0
+          Height = 40
+          Top = 824
+          Width = 250
+          Align = alBottom
+          TabOrder = 2
+          BevelOuter = bvNone
+          object ButtonNew: TButton
+            Left = 6
+            Height = 27
+            Top = 6
+            Width = 110
+            Caption = 'New'
+            TabOrder = 0
+            OnClick = ButtonNewClick
+          end
+          object ButtonDelete: TButton
+            Left = 126
+            Height = 27
+            Top = 6
+            Width = 110
+            Caption = 'Delete'
+            TabOrder = 1
+            OnClick = ButtonDeleteClick
+          end
+        end
+      end
+      object Splitter1: TSplitter
+        Left = 250
+        Height = 864
+        Top = 0
+        Width = 6
+      end
+      object PanelRight: TPanel
+        Left = 256
+        Height = 864
         Top = 0
         Width = 918
         Align = alClient
-        Font.Height = -12
-        Font.Name = 'Menlo'
-        ParentFont = False
-        ReadOnly = True
-        ScrollBars = ssAutoBoth
-        TabOrder = 0
-        WordWrap = False
+        TabOrder = 1
+        BevelOuter = bvNone
+        object PanelEditHead: TPanel
+          Left = 0
+          Height = 40
+          Top = 0
+          Width = 918
+          Align = alTop
+          TabOrder = 0
+          BevelOuter = bvNone
+          object LabelKey: TLabel
+            Left = 8
+            Top = 12
+            Height = 16
+            Width = 67
+            Caption = 'Action key:'
+            ParentColor = False
+          end
+          object EditKey: TEdit
+            Left = 84
+            Top = 8
+            Width = 260
+            TabOrder = 0
+            Height = 21
+            OnChange = EditKeyChange
+          end
+          object ButtonCheck: TButton
+            Left = 356
+            Top = 6
+            Width = 90
+            TabOrder = 1
+            Height = 27
+            Caption = 'Check'
+            OnClick = ButtonCheckClick
+          end
+          object ButtonTest: TButton
+            Left = 452
+            Top = 6
+            Width = 130
+            TabOrder = 2
+            Height = 27
+            Caption = 'Test (rollback)'
+            OnClick = ButtonTestClick
+          end
+          object ButtonSave: TButton
+            Left = 588
+            Top = 6
+            Width = 90
+            TabOrder = 3
+            Height = 27
+            Caption = 'Save'
+            OnClick = ButtonSaveClick
+          end
+          object ButtonCheckAll: TButton
+            Left = 800
+            Top = 6
+            Width = 110
+            Anchors = [akTop, akRight]
+            TabOrder = 4
+            Height = 27
+            Caption = 'Check all'
+            OnClick = ButtonCheckAllClick
+          end
+        end
+        object PanelSql: TPanel
+          Left = 0
+          Height = 170
+          Top = 40
+          Width = 918
+          Align = alTop
+          TabOrder = 1
+          BevelOuter = bvNone
+          object LabelSql: TLabel
+            Left = 8
+            Height = 16
+            Top = 0
+            Width = 640
+            Align = alTop
+            BorderSpacing.Left = 8
+            BorderSpacing.Top = 2
+            Caption = 'SQL:'
+            ParentColor = False
+          end
+          object MemoSql: TMemo
+            Left = 8
+            Height = 114
+            Top = 18
+            Width = 640
+            Align = alClient
+            BorderSpacing.Left = 8
+            TabOrder = 0
+            Font.Height = -12
+            Font.Name = 'Menlo'
+            ParentFont = False
+            ScrollBars = ssAutoVertical
+            OnChange = MemoSqlChange
+          end
+          object PanelSqlSide: TPanel
+            Left = 648
+            Height = 134
+            Top = 18
+            Width = 270
+            Align = alRight
+            TabOrder = 1
+            BevelOuter = bvNone
+            object LabelTableName: TLabel
+              Left = 8
+              Top = 8
+              Height = 16
+              Width = 36
+              Caption = 'Table:'
+              ParentColor = False
+            end
+            object EditTableName: TEdit
+              Left = 80
+              Top = 4
+              Width = 182
+              Anchors = [akTop, akLeft, akRight]
+              TabOrder = 0
+              Height = 21
+              TextHint = 'empty = from the record type'
+              OnChange = SqlPartChange
+            end
+            object LabelKeyField: TLabel
+              Left = 8
+              Top = 40
+              Height = 16
+              Width = 26
+              Caption = 'Key:'
+              ParentColor = False
+            end
+            object EditKeyField: TEdit
+              Left = 80
+              Top = 36
+              Width = 182
+              Anchors = [akTop, akLeft, akRight]
+              TabOrder = 1
+              Height = 21
+              OnChange = SqlPartChange
+            end
+            object LabelOrderBy: TLabel
+              Left = 8
+              Top = 72
+              Height = 16
+              Width = 54
+              Caption = 'order by:'
+              ParentColor = False
+            end
+            object EditOrderBy: TEdit
+              Left = 80
+              Top = 68
+              Width = 182
+              Anchors = [akTop, akLeft, akRight]
+              TabOrder = 2
+              Height = 21
+              OnChange = SqlPartChange
+            end
+          end
+          object LabelSqlPreview: TLabel
+            Left = 8
+            Height = 18
+            Top = 152
+            Width = 910
+            Align = alBottom
+            BorderSpacing.Left = 8
+            AutoSize = False
+            Font.Height = -12
+            Font.Name = 'Menlo'
+            ParentColor = False
+            ParentFont = False
+            ParentShowHint = False
+            ShowHint = True
+          end
+        end
+        object SplitterSql: TSplitter
+          Left = 0
+          Height = 8
+          Top = 210
+          Width = 918
+          Cursor = crVSplit
+          Align = alTop
+          Beveled = True
+          MinSize = 60
+          ResizeAnchor = akTop
+        end
+        object PagesDetail: TPageControl
+          Left = 0
+          Height = 260
+          Top = 218
+          Width = 918
+          ActivePage = TabTest
+          Align = alTop
+          TabIndex = 0
+          TabOrder = 2
+          object TabTest: TTabSheet
+            Caption = 'Input values && settings'
+            object LabelHintInput: TLabel
+              Left = 8
+              Height = 16
+              Top = 8
+              Width = 890
+              Anchors = [akTop, akLeft, akRight]
+              AutoSize = False
+              Caption = 'Values for Test/Exec: one per ? - or a record for insert/update. Below: how the run is done.'
+              Font.Color = clGrayText
+              ParentColor = False
+              ParentFont = False
+              ShowAccelChar = False
+            end
+            object LabelBounds: TLabel
+              Left = 8
+              Top = 40
+              Height = 16
+              Width = 73
+              Caption = 'Parameters:'
+              ParentColor = False
+            end
+            object ComboBoundKind: TComboBox
+              Left = 100
+              Top = 36
+              Width = 120
+              TabOrder = 0
+              Height = 20
+              ItemHeight = 16
+              Style = csDropDownList
+              OnChange = ComboBoundKindChange
+            end
+            object EditBoundValue: TEdit
+              Left = 228
+              Top = 36
+              Width = 240
+              TabOrder = 1
+              Height = 21
+            end
+            object ButtonAddBound: TButton
+              Left = 476
+              Top = 34
+              Width = 90
+              TabOrder = 2
+              Height = 27
+              Caption = 'Add'
+              OnClick = ButtonAddBoundClick
+            end
+            object ButtonClearBounds: TButton
+              Left = 572
+              Top = 34
+              Width = 80
+              TabOrder = 3
+              Height = 27
+              Caption = 'Clear'
+              OnClick = ButtonClearBoundsClick
+            end
+            object LabelBoundHint: TLabel
+              Left = 662
+              Top = 40
+              Height = 1
+              Width = 1
+              ParentColor = False
+            end
+            object MemoBounds: TMemo
+              Left = 100
+              Height = 76
+              Top = 68
+              Width = 360
+              TabOrder = 4
+              Font.Height = -12
+              Font.Name = 'Menlo'
+              ParentFont = False
+              ScrollBars = ssAutoVertical
+              WordWrap = False
+              OnChange = MemoBoundsChange
+            end
+            object LabelBoundsJson: TLabel
+              Left = 476
+              Top = 68
+              Height = 16
+              Width = 86
+              Caption = 'sent as JSON:'
+              ParentColor = False
+            end
+            object EditBoundsJson: TEdit
+              Left = 476
+              Top = 88
+              Width = 420
+              Anchors = [akTop, akLeft, akRight]
+              TabOrder = 5
+              Height = 19
+              Font.Height = -12
+              Font.Name = 'Menlo'
+              ParentFont = False
+              ReadOnly = True
+            end
+            object ButtonTestBoundsFromJson: TButton
+              Left = 476
+              Top = 116
+              Width = 180
+              TabOrder = 6
+              Height = 26
+              Caption = 'JSON as TestBounds'
+              OnClick = ButtonTestBoundsFromJsonClick
+            end
+            object LabelTestBounds: TLabel
+              Left = 8
+              Top = 156
+              Height = 16
+              Width = 75
+              Caption = 'TestBounds:'
+              ParentColor = False
+            end
+            object EditTestBounds: TEdit
+              Left = 100
+              Top = 152
+              Width = 556
+              Anchors = [akTop, akLeft, akRight]
+              TabOrder = 7
+              Height = 21
+              TextHint = 'values for Check all, e.g. ["Wegberg"]'
+              OnChange = SqlPartChange
+            end
+            object ButtonRecordDialog: TButton
+              Left = 664
+              Top = 150
+              Width = 200
+              TabOrder = 8
+              Height = 27
+              Caption = 'Enter record values...'
+              OnClick = ButtonRecordDialogClick
+            end
+            object CheckInline: TCheckBox
+              Left = 100
+              Top = 188
+              TabOrder = 9
+              Height = 18
+              Width = 301
+              Caption = 'Cross-check: inline the values instead of binding'
+            end
+            object cbRollback: TCheckBox
+              Left = 420
+              Top = 188
+              TabOrder = 10
+              Height = 18
+              Width = 75
+              Caption = 'Rollback'
+              Checked = True
+              State = cbChecked
+              OnChange = cbRollbackChange
+            end
+            object cbViaServer: TCheckBox
+              Left = 520
+              Top = 188
+              TabOrder = 11
+              Height = 18
+              Width = 220
+              Caption = 'run through the server (with login)'
+              OnChange = cbViaServerChange
+            end
+          end
+          object TabTypes: TTabSheet
+            Caption = 'Types (params, record)'
+            object LabelHintTypes: TLabel
+              Left = 8
+              Height = 16
+              Top = 8
+              Width = 890
+              Anchors = [akTop, akLeft, akRight]
+              AutoSize = False
+              Caption = 'The template''s signature: one type per ?; a record type for generated statements.'
+              Font.Color = clGrayText
+              ParentColor = False
+              ParentFont = False
+              ShowAccelChar = False
+            end
+            object LabelParamTypes: TLabel
+              Left = 8
+              Top = 40
+              Height = 16
+              Width = 40
+              Caption = 'Types:'
+              ParentColor = False
+            end
+            object EditParamTypes: TEdit
+              Left = 110
+              Top = 36
+              Width = 330
+              TabOrder = 0
+              Height = 21
+              OnChange = SqlPartChange
+            end
+            object ButtonTypesFromBounds: TButton
+              Left = 450
+              Top = 34
+              Width = 190
+              TabOrder = 1
+              Height = 27
+              Caption = 'Take from parameters'
+              OnClick = ButtonTypesFromBoundsClick
+            end
+            object LabelRecordType: TLabel
+              Left = 8
+              Top = 72
+              Height = 16
+              Width = 77
+              Caption = 'Record type:'
+              ParentColor = False
+            end
+            object EditRecordType: TEdit
+              Left = 110
+              Top = 68
+              Width = 330
+              TabOrder = 2
+              Height = 21
+              OnChange = EditKeyChange
+            end
+            object LabelRecordDecl: TLabel
+              Left = 8
+              Top = 104
+              Height = 16
+              Width = 83
+              Caption = 'Record fields:'
+              ParentColor = False
+            end
+            object MemoRecordDecl: TMemo
+              Left = 110
+              Height = 60
+              Top = 100
+              Width = 790
+              Anchors = [akTop, akLeft, akRight]
+              TabOrder = 3
+              Font.Height = -12
+              Font.Name = 'Menlo'
+              ParentFont = False
+              ScrollBars = ssAutoBoth
+              WordWrap = False
+            end
+            object ButtonCreateTable: TButton
+              Left = 110
+              Top = 170
+              Width = 220
+              TabOrder = 4
+              Height = 27
+              Caption = 'Generate CREATE TABLE'
+              OnClick = ButtonCreateTableClick
+            end
+            object LabelDialect: TLabel
+              Left = 342
+              Top = 176
+              Height = 16
+              Width = 46
+              Caption = 'Dialect:'
+              ParentColor = False
+            end
+            object ComboDialect: TComboBox
+              Left = 398
+              Top = 172
+              Width = 150
+              TabOrder = 5
+              Height = 20
+              ItemHeight = 16
+              Style = csDropDownList
+            end
+          end
+          object TabRights: TTabSheet
+            Caption = 'Rights and rules'
+            object LabelHintRights: TLabel
+              Left = 8
+              Height = 16
+              Top = 8
+              Width = 890
+              Anchors = [akTop, akLeft, akRight]
+              AutoSize = False
+              Caption = 'Who may call it, and which values are refused.'
+              Font.Color = clGrayText
+              ParentColor = False
+              ParentFont = False
+              ShowAccelChar = False
+            end
+            object LabelRights: TLabel
+              Left = 8
+              Top = 40
+              Height = 16
+              Width = 106
+              Caption = 'Rights read/write:'
+              ParentColor = False
+            end
+            object EditReadGroups: TEdit
+              Left = 130
+              Top = 36
+              Width = 70
+              TabOrder = 0
+              Height = 21
+              Text = '0'
+            end
+            object EditWriteGroups: TEdit
+              Left = 206
+              Top = 36
+              Width = 70
+              TabOrder = 1
+              Height = 21
+              Text = '0'
+            end
+            object LabelRightsHint: TLabel
+              Left = 288
+              Top = 40
+              Height = 16
+              Width = 183
+              Caption = 'bitmask per group, 0 = no rule'
+              ParentColor = False
+            end
+            object LabelCallerScope: TLabel
+              Left = 8
+              Top = 72
+              Height = 16
+              Width = 83
+              Caption = 'Caller-Scope:'
+              ParentColor = False
+            end
+            object EditCallerScope: TEdit
+              Left = 130
+              Top = 68
+              Width = 200
+              TabOrder = 2
+              Height = 21
+              TextHint = 'empty, or userid'
+            end
+            object LabelRules: TLabel
+              Left = 8
+              Top = 104
+              Height = 16
+              Width = 37
+              Caption = 'Rules:'
+              ParentColor = False
+            end
+            object EditRules: TEdit
+              Left = 130
+              Top = 100
+              Width = 500
+              Anchors = [akTop, akLeft, akRight]
+              TabOrder = 3
+              Height = 21
+              TextHint = 'e.g. 1:notempty;2:plz;3:email'
+            end
+          end
+        end
+        object SplitterEdit: TSplitter
+          Left = 0
+          Height = 8
+          Top = 478
+          Width = 918
+          Cursor = crVSplit
+          Align = alTop
+          Beveled = True
+          MinSize = 60
+          ResizeAnchor = akTop
+        end
+        object PagesResult: TPageControl
+          Left = 0
+          Height = 358
+          Top = 486
+          Width = 918
+          Align = alClient
+          TabOrder = 3
+          ActivePage = TabDto
+          TabIndex = 2
+          object TabJson: TTabSheet
+            Caption = 'JSON'
+            ClientHeight = 308
+            ClientWidth = 912
+            object PanelJsonTop: TPanel
+              Left = 0
+              Height = 30
+              Top = 0
+              Width = 912
+              Align = alTop
+              BevelOuter = bvNone
+              ClientHeight = 30
+              ClientWidth = 912
+              TabOrder = 0
+              object CheckRawJson: TCheckBox
+                Left = 8
+                Height = 18
+                Top = 4
+                Width = 254
+                Caption = 'show raw (exactly the bytes that go out)'
+                TabOrder = 0
+                OnChange = CheckRawJsonChange
+              end
+            end
+            object MemoJson: TMemo
+              Left = 0
+              Height = 278
+              Top = 30
+              Width = 912
+              Align = alClient
+              Font.Height = -12
+              Font.Name = 'Menlo'
+              ParentFont = False
+              ReadOnly = True
+              ScrollBars = ssAutoBoth
+              TabOrder = 1
+              WordWrap = False
+            end
+          end
+          object TabTable: TTabSheet
+            Caption = 'Table'
+            ClientHeight = 308
+            ClientWidth = 912
+            object GridResult: TStringGrid
+              Left = 0
+              Height = 308
+              Top = 0
+              Width = 912
+              Align = alClient
+              ColCount = 1
+              FixedCols = 0
+              FixedRows = 0
+              Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goSmoothScroll]
+              RowCount = 1
+              TabOrder = 0
+            end
+          end
+          object TabDto: TTabSheet
+            Caption = 'Type'
+            ClientHeight = 308
+            ClientWidth = 912
+            object PanelDtoTop: TPanel
+              Left = 0
+              Height = 44
+              Top = 0
+              Width = 912
+              Align = alTop
+              BevelOuter = bvNone
+              ClientHeight = 44
+              ClientWidth = 912
+              TabOrder = 0
+              object LabelTypeName: TLabel
+                Left = 12
+                Height = 16
+                Top = 14
+                Width = 70
+                Caption = 'Type name:'
+                ParentColor = False
+              end
+              object EditTypeName: TEdit
+                Left = 100
+                Height = 21
+                Top = 9
+                Width = 260
+                TabOrder = 0
+              end
+              object ButtonGenerate: TButton
+                Left = 372
+                Height = 27
+                Top = 8
+                Width = 180
+                Caption = 'Type from result'
+                TabOrder = 1
+                OnClick = ButtonGenerateClick
+              end
+              object ButtonCopyDto: TButton
+                Left = 562
+                Height = 27
+                Top = 8
+                Width = 160
+                Caption = 'Copy to clipboard'
+                TabOrder = 2
+                OnClick = ButtonCopyDtoClick
+              end
+            end
+            object MemoDto: TMemo
+              Left = 0
+              Height = 264
+              Top = 44
+              Width = 912
+              Align = alClient
+              Font.Height = -12
+              Font.Name = 'Menlo'
+              ParentFont = False
+              ScrollBars = ssAutoBoth
+              TabOrder = 1
+              WordWrap = False
+            end
+          end
+          object TabLog: TTabSheet
+            Caption = 'Messages'
+            ClientHeight = 308
+            ClientWidth = 912
+            object MemoLog: TMemo
+              Left = 0
+              Height = 308
+              Top = 0
+              Width = 912
+              Align = alClient
+              Font.Height = -12
+              Font.Name = 'Menlo'
+              ParentFont = False
+              ReadOnly = True
+              ScrollBars = ssAutoBoth
+              TabOrder = 0
+              WordWrap = False
+            end
+          end
+        end
+        object LabelStatus: TLabel
+          Left = 8
+          Height = 20
+          Top = 844
+          Width = 910
+          Align = alBottom
+          AutoSize = False
+          BorderSpacing.Left = 8
+          Font.Height = -13
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+          ShowAccelChar = False
+        end
       end
     end
   end

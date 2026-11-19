@@ -32,6 +32,7 @@ tar xf mormot2static.tgz        # Windows: 7z x mormot2static.7z
 Die Prüfung muss `OK` melden. Meldet sie `FAILED`, gehört das Archiv zu einer anderen Version — dann stimmt die Herkunft nicht. Nach dem Entpacken gibt es `static/aarch64-linux/` und die übrigen Zielverzeichnisse; das Lazarus-Package sucht sie von selbst dort.
 
 **Toolchain.** Geprüft mit Lazarus 4.9 und FPC 3.3.1 auf aarch64-linux. Dieselben drei Programme bauen und laufen außerdem auf Windows 11 ARM, Windows 10 (x64), Ubuntu ARM und MX Linux (x64, auf Debian aufgesetzt) — jeweils mit FPC 3.3.1 und Lazarus aus dem Trunk, jeweils Server, Client und Editor, samt Anmeldung mit `token strict` und dem Editor an einer Datenbank. Der Compiler ist die zweite bewegliche Abhängigkeit: Auf dem 2.3-LTS-Stand bricht `mormot.lib.pkcs11` mit diesem FPC im Assembler ab — ein Codegen-Fehler auf aarch64, keiner von mORMot. Mit dem Tag oben tritt er nicht auf.
+Unter macOS Lazarus ab 5.0 nehmen (oder main ab Oktober 2025): In Lazarus 4.x bricht der Cocoa-Datei-Dialog mit SIGABRT ab, wenn man ihn mit *Abbrechen* schließt — im Editor sind das die `…`-Knöpfe. Lazarus hat es mit Commit `eef99b8710` behoben (*Cocoa: improve Edit Menu in File Dialog*); auf einer 4.x-Installation lässt sich genau dieser Commit auf `lcl/interfaces/cocoa/cocoawsdialogs.pas` anwenden.
 
 **Der Bau selbst.** Das mORMot-Package einmal registrieren, danach die drei Projekte:
 
