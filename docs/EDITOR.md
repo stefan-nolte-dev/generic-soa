@@ -13,23 +13,35 @@ and it belongs on a development database.
 
 ## Start and connect
 
-1. Run `bin/soa_sql_templates_editor`.
+1. Run `bin/soa_sql_templates_editor`. It opens on the **Connection** tab.
 2. Pick the **Profile** (`demo` or `mssql`). That sets the target and the
    templates file together — never change them separately, they belong to each
    other.
-3. Press **Connect**. The title bar then shows the connection.
-4. Press **Load list**. The action keys appear on the left.
+3. Press **Connect**. The title bar then shows the connection; the line below
+   *Load list* says what happened, in red if it failed.
+4. Press **Load list**. The editor switches to the **Templates** tab, with the
+   action keys on the left.
 
 Without a connection everything works except *Test* and the running half of
 *Check all*.
 
-| Field on top | Meaning |
+| Field on the Connection tab | Meaning |
 |---|---|
 | **DB** | driver: SQLite, or an ODBC connection string |
 | **Target** | file name (SQLite) or the full ODBC connection string |
 | **User / Passwort** | ODBC only; leave empty for Kerberos |
 | **Templates** | the `.sqlite` holding the templates |
-| **Search** (bottom left) | filters the key list while you type |
+| **Search** (Templates tab) | filters the key list while you type |
+| **Server / Reload server** | the server's address; *Reload server* makes it re-read its templates |
+
+The **Templates** tab, top to bottom: the key list down the left with
+**Search** above it; the **Action key** with *Check*, *Test*, *Save* and
+*Check all*; the **SQL** box with *Table*, *Key* and *order by* beside it;
+the tabs **Input values & settings**, **Types (params, record)** and
+**Rights and rules**, each with a grey line on top saying what it is for; the
+results. The bars
+between the SQL box, the detail tabs and the results can be dragged — to
+make room for a long statement, or for the results.
 
 ---
 
@@ -39,15 +51,17 @@ Without a connection everything works except *Test* and the running half of
 2. Enter the **Action key**, e.g. `GetKundenByCity`.
 3. Type the **SQL**, one `?` per parameter:
    `select ID, Name from Kunde where City = ?`
-4. Fill in **Parameters**: pick the kind (`text`, `int`, `date` …), type the
+4. Fill in **Parameters** (tab *Input values & settings*): pick the kind (`text`, `int`, `date` …), type the
    value, press **Add**. One per `?`, in the statement's order.
-5. **Types** fills itself as you go; otherwise press
+5. **Types** (tab *Types (params, record)*) fills itself as you go; otherwise press
    **Take from parameters**.
-6. Set **Rights read/write** (a bitmask per group, `1` = group 1). `0`
+6. Set **Rights read/write** (tab *Rights and rules*; a bitmask per group, `1` = group 1). `0`
    means "no rule" and is refused by a server started with `strict`.
 7. **Check** — reports everything that can be told without a database.
 8. **Test** — runs it; a write is rolled back while **Rollback** is ticked.
-9. **Save**. Then **Reload server**, or a running server will not know
+   The button says which: *Test (rollback)*, or *Exec (commit)* with the box
+   unticked.
+9. **Save**. Then **Reload server** (tab *Connection*), or a running server will not know
    the key.
 
 Looking at the result: tab **Table** (rows), **JSON** (what goes out),
@@ -145,7 +159,7 @@ column. Then **Save**.
 
 ## Going through the server
 
-The box **run through the server (with login)** at the bottom:
+The box **run through the server (with login)** on the *Input values & settings* tab:
 
 * **Test** and **Check all** then call the server the way a client would —
   with the rights mask, the caller scope and the rules.
@@ -165,7 +179,7 @@ The box **run through the server (with login)** at the bottom:
 | Button | Does |
 |---|---|
 | **Check** | everything without a database: declaration, parameter count, record type, rules, whether the server would accept the set |
-| **Test** | runs it — directly or through the server, depending on the box |
+| **Test (rollback)** / **Exec (commit)** | runs it — directly or through the server, depending on the box. The caption follows **Rollback**: ticked, a write is undone; unticked, it stays. Called *Test* elsewhere on this page |
 | **Save** | writes the template to the file and exports `templates.sql` beside it |
 | **Check all** | the same check over every template |
 | **Reload server** | the server re-reads its templates |
@@ -186,3 +200,4 @@ The box **run through the server (with login)** at the bottom:
 | `NOT NULL constraint failed` | a `?` stayed unbound: a parameter is missing |
 | "CallerScope: der Editor bindet keine Identität" | not runnable directly — test it through the server |
 | the editor hangs on connect | ODBC without the tunnel, or without a Kerberos ticket |
+| the editor aborts (SIGABRT) when a file dialog is cancelled | macOS with Lazarus 4.x — see *Toolchain* in the README |

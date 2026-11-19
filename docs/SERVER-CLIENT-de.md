@@ -50,9 +50,17 @@ Profil, Datenbank und den Pfad der Logdatei (`bin/*.log`).
 `templates_mssql_schema.sql` daneben legt die vier Tabellen an, die die
 Templates dieses Profils lesen, mit ein paar erfundenen Zeilen — angelegt wird
 im Projekt sonst nichts, also hat das Profil damit überhaupt etwas zu lesen.
-Vorher `SQLSERVER_HOST` in `src/commonserv/SqlServerConn.pas` auf den eigenen
-Server und `TargetDatabase` in `src/common/SqlProfiles.pas` auf die eigene
-Datenbank setzen; beide tragen einen Platzhalter.
+Vorher den eigenen Server und die eigene Datenbank in `bin/sqlserver.json`
+eintragen (nicht in git, wie alles in `bin/` außer den Templates):
+
+```json
+{"Host": "sqlserver.example.com,1433", "Database": "SoaSample"}
+```
+
+Den Server mit vollem Namen (FQDN), den braucht Kerberos. Die
+Umgebungsvariablen `SQLSERVER_HOST` und `SQLSERVER_DATABASE` gehen der Datei
+vor. Ohne beides gilt ein Platzhalter als Server und `SoaSample` aus dem Profil
+als Datenbank.
 
 Beide Profile können gleichzeitig laufen — eigener Port, eigene Datenbank.
 

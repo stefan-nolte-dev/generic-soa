@@ -363,18 +363,18 @@ begin
         until it is theirs }
       raise ESqlTemplate.CreateUtf8(
         'No connection to % (%).'#13#10 +
-        'This profile talks to a SQL Server you provide. Set SQLSERVER_HOST ' +
-        'in src/commonserv/SqlServerConn.pas and TargetDatabase in ' +
-        'src/common/SqlProfiles.pas - both carry a placeholder - and ' +
-        'rebuild.'#13#10 +
+        'This profile talks to a SQL Server you provide. Name it in ' +
+        'bin/sqlserver.json - {"Host": "<fqdn>,1433", "Database": "<name>"} ' +
+        '- or in the environment variables SQLSERVER_HOST and ' +
+        'SQLSERVER_DATABASE; without them a placeholder is used.'#13#10 +
         'It also needs a route to that server, a login for it (a Kerberos ' +
         'ticket, which "klist" shows, or the user and password fields of the ' +
         'editor), and the tables: bin/templates_mssql_schema.sql creates the ' +
         'four this profile reads.'#13#10 +
         'The driver said: %',
-        [SQLSERVER_HOST, E.ClassType, E.Message]);
+        [SqlServerHost, E.ClassType, E.Message]);
   end;
-  Info := aDatabase + ' on ' + SQLSERVER_HOST +
+  Info := SqlServerDatabase(aDatabase) + ' on ' + SqlServerHost +
           ' (' + SQLSERVER_DRIVER + ', Trusted_Connection)';
 end;
 
